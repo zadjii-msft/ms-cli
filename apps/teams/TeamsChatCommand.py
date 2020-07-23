@@ -35,13 +35,16 @@ class TeamsChatCommand(BaseCommand):
             return Error()
 
         # Get all the messages either from us to them, or from the other user to us
-        messages_from_current = db.session.query(ChatMessage).filter(
-            ChatMessage.sender_id == current_user.id
-            and ChatMessage.target_id == other_user.id
+        messages_from_current = (
+            db.session.query(ChatMessage)
+            .filter(ChatMessage.sender_id == current_user.id)
+            .filter(ChatMessage.target_id == other_user.id)
         )
-        messages_from_other = db.session.query(ChatMessage).filter(
-            ChatMessage.sender_id == other_user.id
-            and ChatMessage.target_id == current_user.id
+
+        messages_from_other = (
+            db.session.query(ChatMessage)
+            .filter(ChatMessage.sender_id == other_user.id)
+            .filter(ChatMessage.target_id == current_user.id)
         )
 
         # combine them, and get the results
