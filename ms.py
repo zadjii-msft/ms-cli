@@ -3,6 +3,7 @@ import sys
 
 from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
+from common.Instance import Instance
 from apps.teams.TeamsCommand import TeamsCommand
 
 
@@ -37,7 +38,10 @@ def ms_main(argv):
         # regardless of what command we're running, we should build some sort of
         # common "instance" state, and use this first arg to pass it to the
         # command
-        instance = None
+        #
+        # This "instance" would also include things like an active DB instance
+
+        instance = Instance()
         result = args.func(instance, args)
         if result is not None:
             if result.success:
