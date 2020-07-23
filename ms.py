@@ -1,10 +1,23 @@
 import argparse
 import sys
+import os
 
 from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
 from common.Instance import Instance
 from apps.teams.TeamsCommand import TeamsCommand
+
+# Turns VT output support on
+def enable_vt_support():
+    if os.name == 'nt':
+        import ctypes
+        hOut = ctypes.windll.kernel32.GetStdHandle(-11)
+        out_modes = ctypes.c_uint32()
+        ENABLE_VT_PROCESSING = ctypes.c_uint32(0x0004)
+        # ctypes.addressof()
+        ctypes.windll.kernel32.GetConsoleMode(hOut, ctypes.byref(out_modes))
+        out_modes = ctypes.c_uint32(out_modes.value | 0x0004)
+        ctypes.windll.kernel32.SetConsoleMode(hOut, out_modes)
 
 
 class MigrateCommand(BaseCommand):
@@ -41,6 +54,7 @@ def build_arg_parser():
 
 
 def ms_main(argv):
+    enable_vt_support()
     parser = build_arg_parser()
     args = parser.parse_args()
 
@@ -62,6 +76,9 @@ def ms_main(argv):
             if result.success:
                 sys.exit(0)
             else:
+                print('\x1b[31m')
+                print(result.data)
+                print('\x1b[m')
                 sys.exit(-1)
         else:
             sys.exit(-1)

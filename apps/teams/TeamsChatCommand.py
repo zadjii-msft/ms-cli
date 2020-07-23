@@ -50,8 +50,9 @@ class TeamsChatCommand(BaseCommand):
         # combine them, and get the results
         messages = messages_from_current.union(messages_from_other).all()
 
+
         txt = [
-            f"@{msg.sender.name}(->@{msg.target.name}): {msg.content}"
+            f"\x1b[90m@{msg.sender.name}\x1b[m: {msg.content}"
             for msg in messages
         ]
         [print(m) for m in txt]
