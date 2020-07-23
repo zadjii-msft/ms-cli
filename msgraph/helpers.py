@@ -13,9 +13,11 @@ import urllib
 import webbrowser
 import json
 import logging
-import adal
+
+# import adal
 import msal
-import pyperclip
+
+# import pyperclip
 import requests
 import atexit
 import pickle
@@ -35,112 +37,112 @@ def api_endpoint(url):
     )
 
 
-def refresh_flow_session_adal(client_id, refresh_token):
-    """Obtain an access token from Azure AD (via device flow) and create
-    a Requests session instance ready to make authenticated calls to
-    Microsoft Graph.
+# def refresh_flow_session_adal(client_id, refresh_token):
+#     """Obtain an access token from Azure AD (via device flow) and create
+#     a Requests session instance ready to make authenticated calls to
+#     Microsoft Graph.
 
-    client_id = Application ID for registered "Azure AD only" V1-endpoint app
-    refresh_token = existing token stored somewhere that we should try to open
+#     client_id = Application ID for registered "Azure AD only" V1-endpoint app
+#     refresh_token = existing token stored somewhere that we should try to open
 
-    Returns Requests session object if user signed in successfully. The session
-    includes the access token in an Authorization header.
+#     Returns Requests session object if user signed in successfully. The session
+#     includes the access token in an Authorization header.
 
-    User identity must be an organizational account (ADAL does not support MSAs).
-    """
-    ctx = adal.AuthenticationContext(config.AUTHORITY_URL, api_version=None)
-    token_response = ctx.acquire_token_with_refresh_token(
-        refresh_token, client_id, config.RESOURCE
-    )
+#     User identity must be an organizational account (ADAL does not support MSAs).
+#     """
+#     ctx = adal.AuthenticationContext(config.AUTHORITY_URL, api_version=None)
+#     token_response = ctx.acquire_token_with_refresh_token(
+#         refresh_token, client_id, config.RESOURCE
+#     )
 
-    if not token_response.get("accessToken", None):
-        return None
+#     if not token_response.get("accessToken", None):
+#         return None
 
-    session = requests.Session()
-    session.headers.update(
-        {
-            "Authorization": f'Bearer {token_response["accessToken"]}',
-            "SdkVersion": "sample-python-adal",
-            "x-client-SKU": "sample-python-adal",
-        }
-    )
-    return session
-
-
-def device_flow_session_adal(client_id, *, auto=False, secret=None):
-    """Obtain an access token from Azure AD (via device flow) and create
-    a Requests session instance ready to make authenticated calls to
-    Microsoft Graph.
-
-    client_id = Application ID for registered "Azure AD only" V1-endpoint app
-    auto      = whether to copy device code to clipboard and auto-launch browser
-
-    Returns Requests session object if user signed in successfully. The session
-    includes the access token in an Authorization header.
-
-    User identity must be an organizational account (ADAL does not support MSAs).
-    """
-    ctx = adal.AuthenticationContext(config.AUTHORITY_URL, api_version=None)
-    device_code = ctx.acquire_user_code(config.RESOURCE, client_id)
-
-    # display user instructions
-    if auto:
-        pyperclip.copy(device_code["user_code"])  # copy user code to clipboard
-        webbrowser.open(device_code["verification_url"])  # open browser
-        print(
-            f'The code {device_code["user_code"]} has been copied to your clipboard, '
-            f'and your web browser is opening {device_code["verification_url"]}. '
-            "Paste the code to sign in."
-        )
-    else:
-        print(device_code["message"])
-
-    token_response = ctx.acquire_token_with_device_code(
-        config.RESOURCE, device_code, client_id
-    )
-    if not token_response.get("accessToken", None):
-        return None
-
-    refresh_token = token_response.get("refreshToken", None)
-
-    session = requests.Session()
-    session.headers.update(
-        {
-            "Authorization": f'Bearer {token_response["accessToken"]}',
-            "SdkVersion": "sample-python-adal",
-            "x-client-SKU": "sample-python-adal",
-        }
-    )
-    return (session, refresh_token)
+#     session = requests.Session()
+#     session.headers.update(
+#         {
+#             "Authorization": f'Bearer {token_response["accessToken"]}',
+#             "SdkVersion": "sample-python-adal",
+#             "x-client-SKU": "sample-python-adal",
+#         }
+#     )
+#     return session
 
 
-def tryLoginAdal(client_id):
-    """
-    This will try to look for an existing refresh token in a pickle,
-    then refresh that login first with ADAL login before 
-    going into the device flow session.
-    """
-    refresh_token = None
+# def device_flow_session_adal(client_id, *, auto=False, secret=None):
+#     """Obtain an access token from Azure AD (via device flow) and create
+#     a Requests session instance ready to make authenticated calls to
+#     Microsoft Graph.
 
-    path = "microsoft.pickle"
+#     client_id = Application ID for registered "Azure AD only" V1-endpoint app
+#     auto      = whether to copy device code to clipboard and auto-launch browser
 
-    if os.path.exists(path):
-        with open(path, "rb") as token:
-            refresh_token = pickle.load(token)
+#     Returns Requests session object if user signed in successfully. The session
+#     includes the access token in an Authorization header.
 
-    session = None
+#     User identity must be an organizational account (ADAL does not support MSAs).
+#     """
+#     ctx = adal.AuthenticationContext(config.AUTHORITY_URL, api_version=None)
+#     device_code = ctx.acquire_user_code(config.RESOURCE, client_id)
 
-    if refresh_token:
-        session = refresh_flow_session_adal(client_id, refresh_token)
+#     # display user instructions
+#     if auto:
+#         pyperclip.copy(device_code["user_code"])  # copy user code to clipboard
+#         webbrowser.open(device_code["verification_url"])  # open browser
+#         print(
+#             f'The code {device_code["user_code"]} has been copied to your clipboard, '
+#             f'and your web browser is opening {device_code["verification_url"]}. '
+#             "Paste the code to sign in."
+#         )
+#     else:
+#         print(device_code["message"])
 
-    if not session:
-        session, refresh_token = device_flow_session_adal(client_id, auto=True)
+#     token_response = ctx.acquire_token_with_device_code(
+#         config.RESOURCE, device_code, client_id
+#     )
+#     if not token_response.get("accessToken", None):
+#         return None
 
-        # Save the credentials for the next run
-        with open(path, "wb") as token:
-            pickle.dump(refresh_token, token)
+#     refresh_token = token_response.get("refreshToken", None)
 
-    return session
+#     session = requests.Session()
+#     session.headers.update(
+#         {
+#             "Authorization": f'Bearer {token_response["accessToken"]}',
+#             "SdkVersion": "sample-python-adal",
+#             "x-client-SKU": "sample-python-adal",
+#         }
+#     )
+#     return (session, refresh_token)
+
+
+# def tryLoginAdal(client_id):
+#     """
+#     This will try to look for an existing refresh token in a pickle,
+#     then refresh that login first with ADAL login before
+#     going into the device flow session.
+#     """
+#     refresh_token = None
+
+#     path = "microsoft.pickle"
+
+#     if os.path.exists(path):
+#         with open(path, "rb") as token:
+#             refresh_token = pickle.load(token)
+
+#     session = None
+
+#     if refresh_token:
+#         session = refresh_flow_session_adal(client_id, refresh_token)
+
+#     if not session:
+#         session, refresh_token = device_flow_session_adal(client_id, auto=True)
+
+#         # Save the credentials for the next run
+#         with open(path, "wb") as token:
+#             pickle.dump(refresh_token, token)
+
+#     return session
 
 
 def device_flow_session_msal(client_id, scope):
@@ -460,3 +462,114 @@ def upload_file(session, *, ospath, folder=None):
         return upload_file_handle(
             session, iterable=fhandle, filename=fname_only, folder=folder
         )
+
+def list_chats(session, *, user_id="me"):
+    """List chats for the user
+
+    session      = requests.Session() instance with Graph access token
+    user_id = Graph id value for the user, or 'me' (default) for current user
+    
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats'
+
+    endpoint = "me/chats" if user_id == "me" else f"users/{user_id}/chats"
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response.json()
+
+def list_joined_teams(session, *, user_id="me"):
+    """List teams that the user belongs to
+
+    session      = requests.Session() instance with Graph access token
+    user_id = Graph id value for the user, or 'me' (default) for current user
+        
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/joinedTeams'
+
+    endpoint = "me/joinedTeams" if user_id == "me" else f"users/{user_id}/joinedTeams"
+
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response.json()
+
+def list_chat_messages(session, *, user_id="me", chat_id):
+    """List chat messages for the user and a chat
+
+    session      = requests.Session() instance with Graph access token
+    user_id = Graph id value for the user, or 'me' (default) for current user
+    chat_id = Chat ID value from retrieving a list of chats or a specific chat.
+    
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats/{id}/messages'
+
+    endpoint = "me/chats" if user_id == "me" else f"users/{user_id}/chats"
+
+    endpoint += f"/{chat_id}/messages"
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response.json()
+
+def send_chat_message(session, *, chat_id, message):
+    """List channels in a team
+
+    session      = requests.Session() instance with Graph access token
+    chat_id = Chat ID
+    message = text to send
+    
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats/{chat_id}/messages'
+
+    endpoint = f"chats/{chat_id}/messages"
+
+    payload = {}
+    payload["body"] = {"content" : message}
+
+    return session.post(api_endpoint(endpoint), json=payload)
+
+def list_channels(session, *, team_id):
+    """List channels in a team
+
+    session      = requests.Session() instance with Graph access token
+    team_id = Team ID
+    
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/beta/teams/{id}/channels'
+
+    endpoint = f"teams/{team_id}/channels"
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response.json()
+
+def send_message(session, *, team_id, channel_id, message):
+    """List channels in a team
+
+    session      = requests.Session() instance with Graph access token
+    team_id = Team ID
+    channel_id = Channel ID
+    message = text to send
+    
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/beta/teams/{id}/channels/{channel_id}/messages'
+
+    endpoint = f"teams/{team_id}/channels/{channel_id}/messages"
+
+    payload = {}
+    payload["body"] = {"content" : message}
+
+    return session.post(api_endpoint(endpoint), json=payload)

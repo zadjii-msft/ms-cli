@@ -1,3 +1,4 @@
 SQLAlchemy>=1.0.8
 sqlalchemy-migrate>=0.10.0
 black
+msal>=1.4.1

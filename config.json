@@ -1,0 +1,10 @@
+{
+	"MS_GRAPH_SCOPES" : ["https://graph.microsoft.com/User.Read",
+          "https://graph.microsoft.com/Files.ReadWrite",
+          "https://graph.microsoft.com/Mail.ReadWrite",
+          "https://graph.microsoft.com/Calendars.ReadWrite",
+          "https://graph.microsoft.com/Team.ReadBasic.All",
+          "https://graph.microsoft.com/Group.ReadWrite.All",
+          "https://graph.microsoft.com/Chat.ReadWrite"
+         ]
+}
