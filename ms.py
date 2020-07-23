@@ -1,16 +1,20 @@
 import argparse
 import sys
 import os
+import json
+from msgraph import helpers
 
 from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
 from common.Instance import Instance
 from apps.teams.TeamsCommand import TeamsCommand
 
+
 # Turns VT output support on
 def enable_vt_support():
-    if os.name == 'nt':
+    if os.name == "nt":
         import ctypes
+
         hOut = ctypes.windll.kernel32.GetStdHandle(-11)
         out_modes = ctypes.c_uint32()
         ENABLE_VT_PROCESSING = ctypes.c_uint32(0x0004)
@@ -34,6 +38,10 @@ class MigrateCommand(BaseCommand):
         return Error()
 
 
+SECRETS_FILE = "secrets.json"
+CONFIG_FILE = "config.json"
+
+
 def build_arg_parser():
     root_parser = argparse.ArgumentParser(add_help=False)
 
@@ -53,8 +61,70 @@ def build_arg_parser():
     return apps_parser
 
 
+def login_flow(*, secrets):
+    session = helpers.device_flow_session_msal(
+        secrets["MS_GRAPH_CLIENT_ID"], secrets["MS_GRAPH_SCOPES"]
+    )
+    if not session:
+        raise Exception("Couldn't connect to graph.")
+    return session
+
+
+def get_app_config():
+    secrets = json.load(open(SECRETS_FILE, "r", encoding="utf-8"))
+    config = json.load(open(CONFIG_FILE, "r", encoding="utf-8"))
+
+    appconfig = {}
+    appconfig.update(secrets)
+    appconfig.update(config)
+    return appconfig
+
+
+def dostuff():
+    appconfig = get_app_config()
+    session = login_flow(secrets=appconfig)
+
+    teams = helpers.list_joined_teams(session)
+    print(teams)
+
+    team_id = teams["value"][0]["id"]
+    print(team_id)
+
+    channels = helpers.list_channels(session, team_id=team_id)
+    print(channels)
+
+    channel_id = channels["value"][0]["id"]
+    print(channel_id)
+
+    # response = helpers.send_message(session, team_id=team_id, channel_id=channel_id, message="foobarbaz")
+    # print(response)
+
+    chats = helpers.list_chats(session)
+    print(chats)
+
+    chat_id = chats["value"][0]["id"]
+
+    # response = helpers.send_message(session, team_id=team_id, channel_id=chat_id, message="farts")
+    response = helpers.send_chat_message(
+        session,
+        chat_id=chat_id,
+        message="hey michael this is a message mike using the tool",
+    )
+    print(response)
+
+    # messages = helpers.list_chat_messages(session, chat_id=chat_id)
+
+    # print(messages)
+
+    exit()
+
+
 def ms_main(argv):
+
     enable_vt_support()
+
+    dostuff()
+
     parser = build_arg_parser()
     args = parser.parse_args()
 
@@ -76,9 +146,9 @@ def ms_main(argv):
             if result.success:
                 sys.exit(0)
             else:
-                print('\x1b[31m')
+                print("\x1b[31m")
                 print(result.data)
-                print('\x1b[m')
+                print("\x1b[m")
                 sys.exit(-1)
         else:
             sys.exit(-1)
