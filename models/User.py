@@ -6,11 +6,15 @@ import os
 __author__ = "zadjii"
 
 
-class SampleModel(base):
-    __tablename__ = "samplemodel"
+class User(base):
+    __tablename__ = "user"
+    """
+    Represents a single user.
+    """
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    another_column = Column(Integer)
-    some_count = Column(Integer, default=0)
-    created_on = Column(DateTime)
+    # TODO: add some other identifying GUID, email, or whatever from graph API
+
+    def __init__(self, username):
+        self.name = username

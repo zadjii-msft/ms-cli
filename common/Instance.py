@@ -47,9 +47,11 @@ class Instance(object):
 
         # 3.
         exists = os.path.exists(self._db_path())
+        print("The db does not exist" if not exists else "The db already exists")
         self._db = self.make_db_session()
         self._db.engine.echo = False
         if not exists:
+            print("Creating db...")
             self._db.create_all_and_repo(self._db_migrate_repo())
             print(
                 "The database ({}) should have been created here".format(
