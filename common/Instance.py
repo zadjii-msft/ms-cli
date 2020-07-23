@@ -3,6 +3,8 @@ import imp
 import _thread
 import signal
 import configparser
+import json
+from msgraph import helpers
 from argparse import Namespace
 
 from migrate.versioning import api
@@ -11,6 +13,9 @@ from common.SimpleDB import SimpleDB
 from common.ResultAndData import *
 from models import db_base
 import time
+
+SECRETS_FILE = "secrets.json"
+CONFIG_FILE = "config.json"
 
 
 def get_from_conf(config, key, default):
@@ -30,6 +35,8 @@ class Instance(object):
         self._conf_file_name = "ms-cli.conf"
         self._db_map = {}
         self._current_user_name = None
+        self._appconfig = None
+        self._session = None
         self.init_dir()
 
     def init_dir(self):
@@ -132,6 +139,34 @@ class Instance(object):
         print("New database version: " + str(api.db_version(uri, repo)))
 
     ############################################################################
+    """
+    Graph authentication stuff
+    """
+
+    def login_to_graph(self):
+        self._appconfig = Instance._get_app_config()
+        self._session = Instance._login_flow(secrets=self._appconfig)
+
+    @staticmethod
+    def _get_app_config():
+        secrets = json.load(open(SECRETS_FILE, "r", encoding="utf-8"))
+        config = json.load(open(CONFIG_FILE, "r", encoding="utf-8"))
+
+        appconfig = {}
+        appconfig.update(secrets)
+        appconfig.update(config)
+        return appconfig
+
+    @staticmethod
+    def _login_flow(*, secrets):
+        session = helpers.device_flow_session_msal(
+            secrets["MS_GRAPH_CLIENT_ID"], secrets["MS_GRAPH_SCOPES"]
+        )
+        if not session:
+            raise Exception("Couldn't connect to graph.")
+        return session
+
+    ############################################################################
     def get_current_user(self):
         from models.User import User
 
@@ -140,3 +175,6 @@ class Instance(object):
         db = self.get_db()
         user = db.session.query(User).filter_by(name=self._current_user_name).first()
         return ResultAndData(user is not None, user)
+
+    def get_graph_session(self):
+        return self._session

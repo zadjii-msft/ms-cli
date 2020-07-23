@@ -38,10 +38,6 @@ class MigrateCommand(BaseCommand):
         return Error()
 
 
-SECRETS_FILE = "secrets.json"
-CONFIG_FILE = "config.json"
-
-
 def build_arg_parser():
     root_parser = argparse.ArgumentParser(add_help=False)
 
@@ -61,28 +57,9 @@ def build_arg_parser():
     return apps_parser
 
 
-def login_flow(*, secrets):
-    session = helpers.device_flow_session_msal(
-        secrets["MS_GRAPH_CLIENT_ID"], secrets["MS_GRAPH_SCOPES"]
-    )
-    if not session:
-        raise Exception("Couldn't connect to graph.")
-    return session
-
-
-def get_app_config():
-    secrets = json.load(open(SECRETS_FILE, "r", encoding="utf-8"))
-    config = json.load(open(CONFIG_FILE, "r", encoding="utf-8"))
-
-    appconfig = {}
-    appconfig.update(secrets)
-    appconfig.update(config)
-    return appconfig
-
-
-def dostuff():
-    appconfig = get_app_config()
-    session = login_flow(secrets=appconfig)
+def dostuff2(instance):
+    instance.login_to_graph()
+    session = instance.get_graph_session()
 
     teams = helpers.list_joined_teams(session)
     print(teams)
@@ -105,12 +82,12 @@ def dostuff():
     chat_id = chats["value"][0]["id"]
 
     # response = helpers.send_message(session, team_id=team_id, channel_id=chat_id, message="farts")
-    response = helpers.send_chat_message(
-        session,
-        chat_id=chat_id,
-        message="hey michael this is a message mike using the tool",
-    )
-    print(response)
+    # response = helpers.send_chat_message(
+    #     session,
+    #     chat_id=chat_id,
+    #     message="hey michael this is a message mike using the tool",
+    # )
+    # print(response)
 
     # messages = helpers.list_chat_messages(session, chat_id=chat_id)
 
@@ -123,7 +100,7 @@ def ms_main(argv):
 
     enable_vt_support()
 
-    dostuff()
+    dostuff2(Instance())
 
     parser = build_arg_parser()
     args = parser.parse_args()
