@@ -1,5 +1,6 @@
 from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
+from models.SampleModel import SampleModel
 from argparse import Namespace
 
 
@@ -19,5 +20,28 @@ class TeamsChatCommand(BaseCommand):
         print("This is the teams chat command")
         user = args.user
         print(f"chatting with {user}")
+
+        db = instance.get_db()
+
+        # get all the `SampleModel`s
+        samples = db.session.query(SampleModel).all()
+        print([f"{sample.id}:{sample.some_count}" for sample in samples])
+
+        if db.session.query(SampleModel).count() > 0:
+            first_sample = db.session.query(SampleModel).first()
+            first_sample.some_count = first_sample.some_count + 1
+            print(f"incremented existing SampleModel, {first_sample.some_count}")
+        else:
+            first_sample = SampleModel()
+            print("Created a new SampleModel")
+            db.session.add(first_sample)
+
+        db.session.commit()
+        print(
+            [
+                f"{sample.id}:{sample.some_count}"
+                for sample in db.session.query(SampleModel).all()
+            ]
+        )
 
         return Error()

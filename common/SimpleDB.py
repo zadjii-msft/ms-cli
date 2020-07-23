@@ -2,7 +2,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from migrate.versioning import api
 import os
-__author__ = 'Mike'
+
+__author__ = "Mike"
 
 
 class SimpleDB(object):
@@ -22,7 +23,7 @@ class SimpleDB(object):
         # print('The database ({}) should have been created here'.format(self.db_uri))
 
         if not os.path.exists(migrate_repo):
-            api.create(migrate_repo, 'database repository')
+            api.create(migrate_repo, "database repository")
             api.version_control(self.db_uri, migrate_repo)
         else:
             api.version_control(self.db_uri, migrate_repo, api.version(migrate_repo))

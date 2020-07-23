@@ -7,6 +7,20 @@ from common.Instance import Instance
 from apps.teams.TeamsCommand import TeamsCommand
 
 
+class MigrateCommand(BaseCommand):
+    def add_parser(self, subparsers):
+        sample = subparsers.add_parser(
+            "migrate", description="Used to update the database"
+        )
+        return sample
+
+    def do_command_with_args(self, instance, args):
+        # type: (Instance, Namespace) -> ResultAndData
+        instance.migrate()
+        # TODO: Does this even work? I have no idea
+        return Error()
+
+
 def build_arg_parser():
     root_parser = argparse.ArgumentParser(add_help=False)
 
@@ -22,6 +36,7 @@ def build_arg_parser():
         help="Which graph application to run",
     )
     teams_cmd = TeamsCommand(subparsers)
+    MigrateCommand(subparsers)
     return apps_parser
 
 
