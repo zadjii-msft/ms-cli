@@ -464,24 +464,6 @@ def upload_file(session, *, ospath, folder=None):
         )
 
 
-def list_chats(session, *, user_id="me"):
-    """List chats for the user
-
-    session      = requests.Session() instance with Graph access token
-    user_id = Graph id value for the user, or 'me' (default) for current user
-    
-    Returns the whole JSON for the message request
-    """
-
-    # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats'
-
-    endpoint = "me/chats" if user_id == "me" else f"users/{user_id}/chats"
-
-    response = session.get(api_endpoint(endpoint))
-    response.raise_for_status()
-    return response.json()
-
-
 def list_joined_teams(session, *, user_id="me"):
     """List teams that the user belongs to
 
@@ -498,47 +480,6 @@ def list_joined_teams(session, *, user_id="me"):
     response = session.get(api_endpoint(endpoint))
     response.raise_for_status()
     return response.json()
-
-
-def list_chat_messages(session, *, user_id="me", chat_id):
-    """List chat messages for the user and a chat
-
-    session      = requests.Session() instance with Graph access token
-    user_id = Graph id value for the user, or 'me' (default) for current user
-    chat_id = Chat ID value from retrieving a list of chats or a specific chat.
-    
-    Returns the whole JSON for the message request
-    """
-
-    # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats/{id}/messages'
-
-    endpoint = "me/chats" if user_id == "me" else f"users/{user_id}/chats"
-
-    endpoint += f"/{chat_id}/messages"
-
-    response = session.get(api_endpoint(endpoint))
-    response.raise_for_status()
-    return response.json()
-
-
-def send_chat_message(session, *, chat_id, message):
-    """List channels in a team
-
-    session      = requests.Session() instance with Graph access token
-    chat_id = Chat ID
-    message = text to send
-    
-    Returns the whole JSON for the message request
-    """
-
-    # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats/{chat_id}/messages'
-
-    endpoint = f"chats/{chat_id}/messages"
-
-    payload = {}
-    payload["body"] = {"content": message}
-
-    return session.post(api_endpoint(endpoint), json=payload)
 
 
 def list_channels(session, *, team_id):
@@ -558,9 +499,184 @@ def list_channels(session, *, team_id):
     response.raise_for_status()
     return response.json()
 
+def list_chats(session, *, user_id="me"):
+    """List chats for the user
 
-def send_message(session, *, team_id, channel_id, message):
-    """List channels in a team
+    session      = requests.Session() instance with Graph access token
+    user_id = Graph id value for the user, or 'me' (default) for current user
+    
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats'
+
+    endpoint = "me/chats" if user_id == "me" else f"users/{user_id}/chats"
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response.json()
+
+def list_channel_messages(session, *, team_id, channel_id):
+    """List channel messages for the team and channel
+    session      = requests.Session() instance with Graph access token
+    team_id = Team ID
+    channel_id = Channel ID
+    
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/beta/teams/{team_id}/channels/{channel_id}/messages'
+
+    endpoint = f"teams/{team_id}/channels/{channel_id}/messages"
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response.json()
+
+def list_channel_messages_since_delta(session, *, deltaLink):
+    """List channel messages for the team and channel
+    session      = requests.Session() instance with Graph access token
+    deltaLink = the leftover delta you were given the last time you called list_channel_messages_since_time
+                we will pick up where that one left off.    
+
+    Returns the whole JSON for the message request concatenated from the looped calls of each page
+    """
+
+    endpoint = deltaLink
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+
+    responseJson = response.json()
+
+    totalResponse = {}
+    totalResponse.update(responseJson)
+    while "@odata.nextLink" in responseJson:
+        endpoint = responseJson['@odata.nextLink']
+        response = session.get(api_endpoint(endpoint))
+        response.raise_for_status()
+        responseJson = response.json()
+        if len(responseJson['value']) > 0:
+            totalResponse.value.update(responseJson['value'])
+
+    if "@odata.nextLink" in totalResponse:
+        del totalResponse['@odata.nextLink']
+
+    totalResponse["@odata.deltaLink"] = responseJson["@odata.deltaLink"]
+
+    return totalResponse
+
+def list_channel_messages_since_time(session, *, team_id, channel_id, when=None):
+    """List channel messages for the team and channel
+    session      = requests.Session() instance with Graph access token
+    team_id = Team ID
+    channel_id = Channel ID
+    when = the most recent messages you know of or the last update time, we'll fetch things after this.
+    
+
+    Returns the whole JSON for the message request concatenated from the looped calls of each page
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/beta/teams/{team_id}/channels/{channel_id}/messages/delta?$filter=lastMOdifiedDateTime gt 2019-02-27T07:13:28.000z'
+   
+    endpoint = f"teams/{team_id}/channels/{channel_id}/messages/delta"
+
+    if when:
+        formattedTime = when.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat(timespec="milliseconds") + 'z'
+        endpoint += f"?$filter=lastModifiedDateTime gt {formattedTime}"  
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+
+    responseJson = response.json()
+
+    totalResponse = {}
+    totalResponse.update(responseJson)
+    while "@odata.nextLink" in responseJson:
+        endpoint = responseJson['@odata.nextLink']
+        response = session.get(endpoint)
+        response.raise_for_status()
+        responseJson = response.json()
+        if len(responseJson['value']) > 0:
+            totalResponse.value.update(responseJson['value'])
+
+    if "@odata.nextLink" in totalResponse:
+        del totalResponse['@odata.nextLink']
+
+    totalResponse["@odata.deltaLink"] = responseJson["@odata.deltaLink"]
+
+    return totalResponse
+
+def list_chat_messages(session, *, user_id="me", chat_id):
+    """List chat messages for the user and a chat
+
+    session      = requests.Session() instance with Graph access token
+    user_id = Graph id value for the user, or 'me' (default) for current user
+    chat_id = Chat ID value from retrieving a list of chats or a specific chat.
+    
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats/{chat_id}/messages'
+
+    endpoint = "me/chats" if user_id == "me" else f"users/{user_id}/chats"
+
+    endpoint += f"/{chat_id}/messages"
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response.json()
+
+def list_chat_messages_since_time(session, *, user_id="me", chat_id, when=None):
+    """List chat messages for the user and a chat
+
+    session      = requests.Session() instance with Graph access token
+    user_id = Graph id value for the user, or 'me' (default) for current user
+    chat_id = Chat ID value from retrieving a list of chats or a specific chat.
+    when = the most recent messages you know of or the last update time, we'll fetch things after this.
+
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats/{chat_id}/messages/delta?$filter=lastMOdifiedDateTime gt 2019-02-27T07:13:28.000z'
+   
+    #2020-07-23, API doesn't support $filter= like the channel one does
+    #2020-07-23, API doesn't give out a deltaLink for next time.
+
+    raise Exception('This does not work yet.')
+
+    endpoint = "me/chats" if user_id == "me" else f"users/{user_id}/chats"
+
+    endpoint += f"/{chat_id}/messages"
+
+    if when:
+        formattedTime = when.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat(timespec="milliseconds") + 'z'
+        endpoint += f"?$filter=lastModifiedDateTime gt {formattedTime}"  
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+
+    responseJson = response.json()
+
+    totalResponse = {}
+    totalResponse.update(responseJson)
+    while "@odata.nextLink" in responseJson:
+        endpoint = responseJson['@odata.nextLink']
+        response = session.get(endpoint)
+        response.raise_for_status()
+        responseJson = response.json()
+        if len(responseJson['value']) > 0:
+            totalResponse.value.update(responseJson['value'])
+
+    if "@odata.nextLink" in totalResponse:
+        del totalResponse['@odata.nextLink']
+
+    totalResponse["@odata.deltaLink"] = responseJson["@odata.deltaLink"]
+
+    return totalResponse
+
+def send_channel_message(session, *, team_id, channel_id, message):
+    """Send message to a channel
 
     session      = requests.Session() instance with Graph access token
     team_id = Team ID
@@ -578,3 +694,24 @@ def send_message(session, *, team_id, channel_id, message):
     payload["body"] = {"content": message}
 
     return session.post(api_endpoint(endpoint), json=payload)
+
+
+def send_chat_message(session, *, chat_id, message):
+    """Send message to a chat
+
+    session      = requests.Session() instance with Graph access token
+    chat_id = Chat ID
+    message = text to send
+    
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats/{chat_id}/messages'
+
+    endpoint = f"chats/{chat_id}/messages"
+
+    payload = {}
+    payload["body"] = {"content": message}
+
+    return session.post(api_endpoint(endpoint), json=payload)
+

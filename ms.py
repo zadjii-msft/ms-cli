@@ -2,6 +2,8 @@ import argparse
 import sys
 import os
 import json
+import datetime
+
 from msgraph import helpers
 
 from common.BaseCommand import BaseCommand
@@ -79,22 +81,29 @@ def get_app_config():
     appconfig.update(config)
     return appconfig
 
-
 def dostuff():
     appconfig = get_app_config()
     session = login_flow(secrets=appconfig)
 
-    teams = helpers.list_joined_teams(session)
-    print(teams)
+    # teams = helpers.list_joined_teams(session)
+    # print(teams)
 
-    team_id = teams["value"][0]["id"]
-    print(team_id)
+    # team_id = teams["value"][0]["id"]
+    # print(team_id)
 
-    channels = helpers.list_channels(session, team_id=team_id)
-    print(channels)
+    # channels = helpers.list_channels(session, team_id=team_id)
+    # print(channels)
 
-    channel_id = channels["value"][0]["id"]
-    print(channel_id)
+    # channel_id = channels["value"][0]["id"]
+    # print(channel_id)
+
+    #response = helpers.list_channel_messages_since_time(session, team_id=team_id, channel_id = channel_id)
+    #response2 = helpers.list_channel_messages_since_delta(session, deltaLink = response["@odata.deltaLink"])
+
+    yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+    
+    # response = helpers.list_channel_messages_since_time(session, team_id=team_id, channel_id = channel_id, when=yesterday)
+    # print(response)
 
     # response = helpers.send_message(session, team_id=team_id, channel_id=channel_id, message="foobarbaz")
     # print(response)
@@ -104,13 +113,18 @@ def dostuff():
 
     chat_id = chats["value"][0]["id"]
 
-    # response = helpers.send_message(session, team_id=team_id, channel_id=chat_id, message="farts")
-    response = helpers.send_chat_message(
-        session,
-        chat_id=chat_id,
-        message="hey michael this is a message mike using the tool",
-    )
+    response = helpers.list_chat_messages_since_time(session, chat_id=chat_id)
     print(response)
+
+    # response = helpers.list_chat_messages_since_time(session, chat_id=chat_id)
+
+    # # response = helpers.send_message(session, team_id=team_id, channel_id=chat_id, message="farts")
+    # response = helpers.send_chat_message(
+    #     session,
+    #     chat_id=chat_id,
+    #     message="hey michael this is a message mike using the tool",
+    # )
+    # print(response)
 
     # messages = helpers.list_chat_messages(session, chat_id=chat_id)
 
