@@ -61,23 +61,24 @@ def dostuff2(instance):
     instance.login_to_graph()
     session = instance.get_graph_session()
 
-    teams = helpers.list_joined_teams(session)
-    print(teams)
+    # teams = helpers.list_joined_teams(session)
+    # print(teams)
 
-    team_id = teams["value"][0]["id"]
-    print(team_id)
+    # team_id = teams["value"][0]["id"]
+    # print(team_id)
 
-    channels = helpers.list_channels(session, team_id=team_id)
-    print(channels)
+    # channels = helpers.list_channels(session, team_id=team_id)
+    # print(channels)
 
-    channel_id = channels["value"][0]["id"]
-    print(channel_id)
+    # channel_id = channels["value"][0]["id"]
+    # print(channel_id)
 
     # response = helpers.send_message(session, team_id=team_id, channel_id=channel_id, message="foobarbaz")
     # print(response)
 
     chats = helpers.list_chats(session)
-    print(chats)
+    # print(chats)
+    print(json.dumps(chats, indent=2))
 
     chat_id = chats["value"][0]["id"]
 
@@ -89,10 +90,10 @@ def dostuff2(instance):
     # )
     # print(response)
 
-    # messages = helpers.list_chat_messages(session, chat_id=chat_id)
+    messages = helpers.list_chat_messages(session, chat_id=chat_id)
 
     # print(messages)
-
+    print(json.dumps(messages, indent=2))
     exit()
 
 
@@ -100,7 +101,7 @@ def ms_main(argv):
 
     enable_vt_support()
 
-    dostuff2(Instance())
+    # dostuff2(Instance())
 
     parser = build_arg_parser()
     args = parser.parse_args()

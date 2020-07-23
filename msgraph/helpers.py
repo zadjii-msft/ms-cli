@@ -254,6 +254,25 @@ def profile_photo(session, *, user_id="me", save_as=None):
     return (photo, photo_status_code, content_type, filename)
 
 
+def get_user(session, *, user_id="me"):
+    """List email from current user.
+
+    session      = requests.Session() instance with Graph access token
+    user_id = Graph id value for the user, or 'me' (default) for current user
+    search  = optional text to search for
+
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/v1.0/me/messages?$search="{query}"'
+
+    endpoint = "me" if user_id == "me" else f"users/{user_id}"
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response.json()
+
+
 def list_mail(session, *, user_id="me", search=None):
     """List email from current user.
 
@@ -416,7 +435,7 @@ def upload_file_handle(session, *, iterable, filename, folder=None):
     session  = requests.Session() instance with Graph access token
     iterable = file-like iterator with bytes to upload
     filename = name of the file to place in OneDrive
-    folder   = destination subfolder/path in OneDrive 
+    folder   = destination subfolder/path in OneDrive
                None (default) = root folder
 
     File is uploaded and the response object is returned.
@@ -469,7 +488,7 @@ def list_chats(session, *, user_id="me"):
 
     session      = requests.Session() instance with Graph access token
     user_id = Graph id value for the user, or 'me' (default) for current user
-    
+
     Returns the whole JSON for the message request
     """
 
@@ -487,7 +506,7 @@ def list_joined_teams(session, *, user_id="me"):
 
     session      = requests.Session() instance with Graph access token
     user_id = Graph id value for the user, or 'me' (default) for current user
-        
+
     Returns the whole JSON for the message request
     """
 
@@ -506,12 +525,12 @@ def list_chat_messages(session, *, user_id="me", chat_id):
     session      = requests.Session() instance with Graph access token
     user_id = Graph id value for the user, or 'me' (default) for current user
     chat_id = Chat ID value from retrieving a list of chats or a specific chat.
-    
+
     Returns the whole JSON for the message request
     """
 
     # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats/{id}/messages'
-
+    print(f'{user_id}')
     endpoint = "me/chats" if user_id == "me" else f"users/{user_id}/chats"
 
     endpoint += f"/{chat_id}/messages"
@@ -527,7 +546,7 @@ def send_chat_message(session, *, chat_id, message):
     session      = requests.Session() instance with Graph access token
     chat_id = Chat ID
     message = text to send
-    
+
     Returns the whole JSON for the message request
     """
 
@@ -546,7 +565,7 @@ def list_channels(session, *, team_id):
 
     session      = requests.Session() instance with Graph access token
     team_id = Team ID
-    
+
     Returns the whole JSON for the message request
     """
 
@@ -566,7 +585,7 @@ def send_message(session, *, team_id, channel_id, message):
     team_id = Team ID
     channel_id = Channel ID
     message = text to send
-    
+
     Returns the whole JSON for the message request
     """
 

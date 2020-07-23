@@ -2,6 +2,7 @@ from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
 from argparse import Namespace
 from apps.teams.TeamsChatCommand import TeamsChatCommand
+from apps.teams.TeamsCacheCommand import TeamsCacheCommand
 
 
 class TeamsCommand(BaseCommand):
@@ -21,6 +22,7 @@ class TeamsCommand(BaseCommand):
             help="Which teams command to run",
         )
         teams_chat_cmd = TeamsChatCommand(subparsers)
+        teams_cache_cmd = TeamsCacheCommand(subparsers)
         return teams_cmd
 
     def do_command_with_args(self, instance, args):

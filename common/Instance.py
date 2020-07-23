@@ -34,9 +34,11 @@ class Instance(object):
         self._db_models = db_base
         self._conf_file_name = "ms-cli.conf"
         self._db_map = {}
-        self._current_user_name = None
+
         self._appconfig = None
         self._session = None
+        self._current_user_guid = None
+
         self.init_dir()
 
     def init_dir(self):
@@ -75,9 +77,10 @@ class Instance(object):
         exists, otherwise default to the self._config.
         """
         # TODO: Load user configuration from the file
-        self._current_user_name = get_from_conf(
-            config, "user_name", self._current_user_name
-        )
+        # self._current_user_name = get_from_conf(
+        #     config, "user_name", self._current_user_name
+        # )
+        pass
 
     def load_conf(self):
         conf_file = self.get_config_file_path()
@@ -144,8 +147,19 @@ class Instance(object):
     """
 
     def login_to_graph(self):
+        from models.User import User
+
         self._appconfig = Instance._get_app_config()
         self._session = Instance._login_flow(secrets=self._appconfig)
+
+        user_json = helpers.get_user(self._session)
+        self._current_user_guid = user_json['id']
+        db = self.get_db()
+        existing = db.session.query(User).filter_by(guid=self._current_user_guid).first()
+        if existing is None:
+            new_user = User.from_json(user_json)
+            db.session.add(new_user)
+            db.session.commit()
 
     @staticmethod
     def _get_app_config():
@@ -170,10 +184,10 @@ class Instance(object):
     def get_current_user(self):
         from models.User import User
 
-        if self._current_user_name is None:
-            return Error(f"no user_name specified in {self.get_config_file_path()}")
+        if self._current_user_guid is None:
+            return Error(f"no user currently logged in")
         db = self.get_db()
-        user = db.session.query(User).filter_by(name=self._current_user_name).first()
+        user = db.session.query(User).filter_by(guid=self._current_user_guid).first()
         return ResultAndData(user is not None, user)
 
     def get_graph_session(self):
