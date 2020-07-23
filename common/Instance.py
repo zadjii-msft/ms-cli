@@ -49,7 +49,7 @@ class Instance(object):
 
         # 3.
         exists = os.path.exists(self._db_path())
-        print("The db does not exist" if not exists else "The db already exists")
+        # print("The db does not exist" if not exists else "The db already exists")
         self._db = self.make_db_session()
         self._db.engine.echo = False
         if not exists:
@@ -68,7 +68,9 @@ class Instance(object):
         exists, otherwise default to the self._config.
         """
         # TODO: Load user configuration from the file
-        self._current_user_name = get_from_conf(config, 'user_name', self._current_user_name)
+        self._current_user_name = get_from_conf(
+            config, "user_name", self._current_user_name
+        )
 
     def load_conf(self):
         conf_file = self.get_config_file_path()
@@ -129,12 +131,12 @@ class Instance(object):
         api.upgrade(uri, repo)
         print("New database version: " + str(api.db_version(uri, repo)))
 
-
     ############################################################################
     def get_current_user(self):
         from models.User import User
+
         if self._current_user_name is None:
-            return Error(f'no user_name specified in {self.get_config_file_path()}')
+            return Error(f"no user_name specified in {self.get_config_file_path()}")
         db = self.get_db()
         user = db.session.query(User).filter_by(name=self._current_user_name).first()
         return ResultAndData(user is not None, user)

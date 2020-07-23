@@ -14,6 +14,9 @@ class User(base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
+    # sent_messages = relationship('ChatMessage'
+    #                     , backref=backref('sender', remote_side=[id])
+    #                     , lazy='dynamic')
     # TODO: add some other identifying GUID, email, or whatever from graph API
 
     def __init__(self, username):

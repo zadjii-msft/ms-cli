@@ -19,6 +19,17 @@ class ChatMessage(base):
     sender_id = Column(Integer, ForeignKey("user.id"))
     target_id = Column(Integer, ForeignKey("user.id"))
     timestamp = Column(DateTime)
+
+    sender = relationship(
+        "User",
+        foreign_keys=[sender_id],
+        backref=backref("sent_messages", remote_side=[sender_id]),
+    )
+    target = relationship(
+        "User",
+        foreign_keys=[target_id],
+        backref=backref("recieved_messages", remote_side=[target_id]),
+    )
     # TODO: add some other identifying GUID, email, or whatever from graph API
 
     def __init__(self, sender, target, message_body, sent_on=datetime.utcnow()):

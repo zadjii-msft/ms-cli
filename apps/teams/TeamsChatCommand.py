@@ -19,7 +19,6 @@ class TeamsChatCommand(BaseCommand):
     def do_command_with_args(self, instance, args):
         # type: (Instance, Namespace) -> ResultAndData
 
-        # print("This is the teams chat command")
         username = args.user
         print(f"chatting with {username}")
 
@@ -27,7 +26,7 @@ class TeamsChatCommand(BaseCommand):
 
         rd = instance.get_current_user()
         if not rd.success:
-            return Error('no logged in user')
+            return Error("no logged in user")
         current_user = rd.data
 
         other_user = db.session.query(User).filter_by(name=username).first()
@@ -35,13 +34,23 @@ class TeamsChatCommand(BaseCommand):
             print(f"Couldn't find user {username}")
             return Error()
 
-        # messages = db.session.query(ChatMessage).filter_by(sender_id=other_user.id).all()
-        messages = db.session.query(ChatMessage).all()
-        txt = [f"{msg.sender_id}->{msg.target_id}: {msg.content}" for msg in messages]
-        print(txt)
-        # print(f'{msg.sender_id}->{msg.target_id}: {msg.content}' for msg in messages)
-        # messages = db.session.query(ChatMessage).filter(ChatMessage.sender_id==other_user.id).all()
-        # messages = db.session.query(ChatMessage).filter(ChatMessage.target_id==other_user.id).all()
-        # print(messages)
+        # Get all the messages either from us to them, or from the other user to us
+        messages_from_current = db.session.query(ChatMessage).filter(
+            ChatMessage.sender_id == current_user.id
+            and ChatMessage.target_id == other_user.id
+        )
+        messages_from_other = db.session.query(ChatMessage).filter(
+            ChatMessage.sender_id == other_user.id
+            and ChatMessage.target_id == current_user.id
+        )
+
+        # combine them, and get the results
+        messages = messages_from_current.union(messages_from_other).all()
+
+        txt = [
+            f"@{msg.sender.name}(->@{msg.target.name}): {msg.content}"
+            for msg in messages
+        ]
+        [print(m) for m in txt]
 
         return Success()
