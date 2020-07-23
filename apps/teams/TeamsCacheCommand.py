@@ -35,18 +35,20 @@ class TeamsCacheCommand(BaseCommand):
         all_thread_ids = []
         for chat in chats["value"]:
             id_from_json =chat['id']
-            thread = db.session.query(ChatThread).filter(id == id_from_json).first()
+            thread = db.session.query(ChatThread).filter(ChatThread.graph_id == id_from_json).first()
             if thread is None:
                 print(f'found a new chat thread {id_from_json}')
                 thread = ChatThread.from_json(chat)
+                print(f'Created a new thread {thread.__dict__}')
                 db.session.add(thread)
+                db.session.commit()
             all_thread_ids.append(thread.graph_id)
 
-        db.session.commit()
 
+        print('All threads:')
+        [print(f'\t{thread.graph_id}') for thread in db.session.query(ChatThread).all()]
 
-
-        chat_id = chats["value"][0]["id"]
+        # chat_id = chats["value"][0]["id"]
 
         # response = helpers.send_message(session, team_id=team_id, channel_id=chat_id, message="farts")
         # response = helpers.send_chat_message(
@@ -55,10 +57,31 @@ class TeamsCacheCommand(BaseCommand):
         #     message="hey michael this is a message mike using the tool",
         # )
         # print(response)
+        for thread_guid in all_thread_ids:
+            print(f'looking for messages in thread:{thread_guid}')
+            thread = db.session.query(ChatThread).filter(ChatThread.graph_id == thread_guid).first()
+            if thread is None:
+                # print(f'the chat thread should never be None here')
+                return Error(f'the chat thread should never be None here')
 
-        messages = helpers.list_chat_messages(graph, chat_id=chat_id)
+            messages = helpers.list_chat_messages(graph, chat_id=thread_guid)
+            print(json.dumps(messages, indent=2))
+            for msg_json in messages['value']:
+                print(msg_json)
+                msg_id_from_json = msg_json['id']
+                msg_model = db.session.query(ChatMessage).filter(ChatMessage.graph_id == msg_id_from_json).first()
+                if msg_model is None:
+                    msg_model = ChatMessage.from_json(msg_json)
+                    msg_model.thread_id = thread.id
+
+                    # TODO: Check if the user has already been cached. If they haven't been, we'll need to make them, too
+
+                    db.session.add(msg_model)
+            db.session.commit()
+
+
 
         # print(messages)
-        print(json.dumps(messages, indent=2))
+        # print(json.dumps(messages, indent=2))
 
         return Success()

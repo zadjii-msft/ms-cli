@@ -26,7 +26,7 @@ class ChatThread(base):
 
     @staticmethod
     def from_json(json_blob):
-        result = User()
+        result = ChatThread()
         result.graph_id = json_blob['id']
         # result.created_date_time = TODO: convert string ("2020-07-23T17:07:17.047Z") to datetime
         # result.last_updated_time = TODO: convert string ("2020-07-23T17:07:17.047Z") to datetime
