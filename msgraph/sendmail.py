@@ -2,8 +2,8 @@
 
 import pprint
 
-from .helpers import api_endpoint, profile_photo, \
-    send_mail, sharing_link, upload_file
+from .helpers import api_endpoint, profile_photo, send_mail, sharing_link, upload_file
+
 
 def sendmail_sample(session):
     """Send email from authenticated user.
@@ -19,54 +19,71 @@ def sendmail_sample(session):
     in a typical production application.
     """
 
-    print('\nGet user profile ---------> https://graph.microsoft.com/v1.0/me')
-    user_profile = session.get(api_endpoint('me'))
-    print(28*' ' + f'<Response [{user_profile.status_code}]>', f'bytes returned: {len(user_profile.text)}\n')
+    print("\nGet user profile ---------> https://graph.microsoft.com/v1.0/me")
+    user_profile = session.get(api_endpoint("me"))
+    print(
+        28 * " " + f"<Response [{user_profile.status_code}]>",
+        f"bytes returned: {len(user_profile.text)}\n",
+    )
     if not user_profile.ok:
-        pprint.pprint(user_profile.json()) # display error
+        pprint.pprint(user_profile.json())  # display error
         return
     user_data = user_profile.json()
-    email = user_data['mail']
-    display_name = user_data['displayName']
+    email = user_data["mail"]
+    display_name = user_data["displayName"]
 
-    print(f'Your name ----------------> {display_name}')
-    print(f'Your email ---------------> {email}')
-    email_to = input(f'Send-to (ENTER=self) -----> ') or email
+    print(f"Your name ----------------> {display_name}")
+    print(f"Your email ---------------> {email}")
+    email_to = input(f"Send-to (ENTER=self) -----> ") or email
 
-    print('\nGet profile photo --------> https://graph.microsoft.com/v1.0/me/photo/$value')
-    photo, photo_status_code, _, profile_pic = profile_photo(session, save_as='me')
-    print(28*' ' + f'<Response [{photo_status_code}]>',
-          f'bytes returned: {len(photo)}, saved as: {profile_pic}')
+    print(
+        "\nGet profile photo --------> https://graph.microsoft.com/v1.0/me/photo/$value"
+    )
+    photo, photo_status_code, _, profile_pic = profile_photo(session, save_as="me")
+    print(
+        28 * " " + f"<Response [{photo_status_code}]>",
+        f"bytes returned: {len(photo)}, saved as: {profile_pic}",
+    )
     if not 200 <= photo_status_code <= 299:
         return
 
-    print(f'Upload to OneDrive ------->',
-          f'https://graph.microsoft.com/v1.0/me/drive/root/children/{profile_pic}/content')
+    print(
+        f"Upload to OneDrive ------->",
+        f"https://graph.microsoft.com/v1.0/me/drive/root/children/{profile_pic}/content",
+    )
     upload_response = upload_file(session, ospath=profile_pic)
-    print(28*' ' + f'<Response [{upload_response.status_code}]>')
+    print(28 * " " + f"<Response [{upload_response.status_code}]>")
     if not upload_response.ok:
-        pprint.pprint(upload_response.json()) # show error message
+        pprint.pprint(upload_response.json())  # show error message
         return
 
-    print('Create sharing link ------>',
-          'https://graph.microsoft.com/v1.0/me/drive/items/{id}/createLink')
-    response, link_url = sharing_link(session, item_id=upload_response.json()['id'])
-    print(28*' ' + f'<Response [{response.status_code}]>',
-          f'bytes returned: {len(response.text)}')
+    print(
+        "Create sharing link ------>",
+        "https://graph.microsoft.com/v1.0/me/drive/items/{id}/createLink",
+    )
+    response, link_url = sharing_link(session, item_id=upload_response.json()["id"])
+    print(
+        28 * " " + f"<Response [{response.status_code}]>",
+        f"bytes returned: {len(response.text)}",
+    )
     if not response.ok:
-        pprint.pprint(response.json()) # show error message
+        pprint.pprint(response.json())  # show error message
         return
 
-    print('Send mail ---------------->',
-          'https://graph.microsoft.com/v1.0/me/microsoft.graph.sendMail')
-    with open('email.html') as template_file:
+    print(
+        "Send mail ---------------->",
+        "https://graph.microsoft.com/v1.0/me/microsoft.graph.sendMail",
+    )
+    with open("email.html") as template_file:
         template = template_file.read().format(name=display_name, link_url=link_url)
 
-    send_response = send_mail(session=session,
-                              subject='email from Microsoft Graph console app',
-                              recipients=email_to.split(';'),
-                              body=template,
-                              attachments=[profile_pic])
-    print(28*' ' + f'<Response [{send_response.status_code}]>')
+    send_response = send_mail(
+        session=session,
+        subject="email from Microsoft Graph console app",
+        recipients=email_to.split(";"),
+        body=template,
+        attachments=[profile_pic],
+    )
+    print(28 * " " + f"<Response [{send_response.status_code}]>")
     if not send_response.ok:
-        pprint.pprint(send_response.json()) # show error message
+        pprint.pprint(send_response.json())  # show error message

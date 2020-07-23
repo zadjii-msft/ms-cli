@@ -23,14 +23,17 @@ import datetime
 
 from . import config
 
+
 def api_endpoint(url):
     """Convert a relative path such as /me/photo/$value to a full URI based
     on the current RESOURCE and API_VERSION settings in config.py.
     """
-    if urllib.parse.urlparse(url).scheme in ['http', 'https']:
-        return url # url is already complete
-    return urllib.parse.urljoin(f'{config.RESOURCE}/{config.API_VERSION}/',
-                                url.lstrip('/'))
+    if urllib.parse.urlparse(url).scheme in ["http", "https"]:
+        return url  # url is already complete
+    return urllib.parse.urljoin(
+        f"{config.RESOURCE}/{config.API_VERSION}/", url.lstrip("/")
+    )
+
 
 def refresh_flow_session_adal(client_id, refresh_token):
     """Obtain an access token from Azure AD (via device flow) and create
@@ -46,17 +49,21 @@ def refresh_flow_session_adal(client_id, refresh_token):
     User identity must be an organizational account (ADAL does not support MSAs).
     """
     ctx = adal.AuthenticationContext(config.AUTHORITY_URL, api_version=None)
-    token_response = ctx.acquire_token_with_refresh_token(refresh_token,
-                                                          client_id,
-                                                          config.RESOURCE)
+    token_response = ctx.acquire_token_with_refresh_token(
+        refresh_token, client_id, config.RESOURCE
+    )
 
-    if not token_response.get('accessToken', None):
+    if not token_response.get("accessToken", None):
         return None
 
     session = requests.Session()
-    session.headers.update({'Authorization': f'Bearer {token_response["accessToken"]}',
-                            'SdkVersion': 'sample-python-adal',
-                            'x-client-SKU': 'sample-python-adal'})
+    session.headers.update(
+        {
+            "Authorization": f'Bearer {token_response["accessToken"]}',
+            "SdkVersion": "sample-python-adal",
+            "x-client-SKU": "sample-python-adal",
+        }
+    )
     return session
 
 
@@ -74,32 +81,38 @@ def device_flow_session_adal(client_id, *, auto=False, secret=None):
     User identity must be an organizational account (ADAL does not support MSAs).
     """
     ctx = adal.AuthenticationContext(config.AUTHORITY_URL, api_version=None)
-    device_code = ctx.acquire_user_code(config.RESOURCE,
-                                        client_id)
+    device_code = ctx.acquire_user_code(config.RESOURCE, client_id)
 
     # display user instructions
     if auto:
-        pyperclip.copy(device_code['user_code']) # copy user code to clipboard
-        webbrowser.open(device_code['verification_url']) # open browser
-        print(f'The code {device_code["user_code"]} has been copied to your clipboard, '
-              f'and your web browser is opening {device_code["verification_url"]}. '
-              'Paste the code to sign in.')
+        pyperclip.copy(device_code["user_code"])  # copy user code to clipboard
+        webbrowser.open(device_code["verification_url"])  # open browser
+        print(
+            f'The code {device_code["user_code"]} has been copied to your clipboard, '
+            f'and your web browser is opening {device_code["verification_url"]}. '
+            "Paste the code to sign in."
+        )
     else:
-        print(device_code['message'])
+        print(device_code["message"])
 
-    token_response = ctx.acquire_token_with_device_code(config.RESOURCE,
-                                                        device_code,
-                                                        client_id)
-    if not token_response.get('accessToken', None):
+    token_response = ctx.acquire_token_with_device_code(
+        config.RESOURCE, device_code, client_id
+    )
+    if not token_response.get("accessToken", None):
         return None
 
-    refresh_token = token_response.get('refreshToken', None)
+    refresh_token = token_response.get("refreshToken", None)
 
     session = requests.Session()
-    session.headers.update({'Authorization': f'Bearer {token_response["accessToken"]}',
-                            'SdkVersion': 'sample-python-adal',
-                            'x-client-SKU': 'sample-python-adal'})
+    session.headers.update(
+        {
+            "Authorization": f'Bearer {token_response["accessToken"]}',
+            "SdkVersion": "sample-python-adal",
+            "x-client-SKU": "sample-python-adal",
+        }
+    )
     return (session, refresh_token)
+
 
 def tryLoginAdal(client_id):
     """
@@ -109,10 +122,10 @@ def tryLoginAdal(client_id):
     """
     refresh_token = None
 
-    path = 'microsoft.pickle'
-   
+    path = "microsoft.pickle"
+
     if os.path.exists(path):
-        with open(path, 'rb') as token:
+        with open(path, "rb") as token:
             refresh_token = pickle.load(token)
 
     session = None
@@ -124,7 +137,7 @@ def tryLoginAdal(client_id):
         session, refresh_token = device_flow_session_adal(client_id, auto=True)
 
         # Save the credentials for the next run
-        with open(path, 'wb') as token:
+        with open(path, "wb") as token:
             pickle.dump(refresh_token, token)
 
     return session
@@ -148,14 +161,17 @@ def device_flow_session_msal(client_id, scope):
     CACHE_FILE = "microsoft.bin"
     if os.path.exists(CACHE_FILE):
         cache.deserialize(open(CACHE_FILE, "r").read())
-    atexit.register(lambda:
-        open(CACHE_FILE, "w").write(cache.serialize())
+    atexit.register(
+        lambda: open(CACHE_FILE, "w").write(cache.serialize())
         # Hint: The following optional line persists only when state changed
-        if cache.has_state_changed else None
-        )
+        if cache.has_state_changed
+        else None
+    )
 
-    app = msal.PublicClientApplication(client_id, authority=config.AUTHORITY_URL, token_cache=cache)
-    
+    app = msal.PublicClientApplication(
+        client_id, authority=config.AUTHORITY_URL, token_cache=cache
+    )
+
     result = None
 
     accounts = app.get_accounts()
@@ -167,7 +183,7 @@ def device_flow_session_msal(client_id, scope):
         #     print(a["username"])
         # # Assuming the end user chose this one
         chosen = accounts[0]
-         # Now let's try to find a token in cache for this account
+        # Now let's try to find a token in cache for this account
         result = app.acquire_token_silent(scope, account=chosen)
 
     if not result:
@@ -176,7 +192,8 @@ def device_flow_session_msal(client_id, scope):
         flow = app.initiate_device_flow(scopes=scope)
         if "user_code" not in flow:
             raise ValueError(
-                "Fail to create device flow. Err: %s" % json.dumps(flow, indent=4))
+                "Fail to create device flow. Err: %s" % json.dumps(flow, indent=4)
+            )
 
         print(flow["message"])
         sys.stdout.flush()  # Some terminal needs this to ensure the message is shown
@@ -185,22 +202,23 @@ def device_flow_session_msal(client_id, scope):
         # input("Press Enter after signing in from another device to proceed, CTRL+C to abort.")
 
         result = app.acquire_token_by_device_flow(flow)  # By default it will block
-            # You can follow this instruction to shorten the block time
-            #    https://msal-python.readthedocs.io/en/latest/#msal.PublicClientApplication.acquire_token_by_device_flow
-            # or you may even turn off the blocking behavior,
-            # and then keep calling acquire_token_by_device_flow(flow) in your own customized loop.
+        # You can follow this instruction to shorten the block time
+        #    https://msal-python.readthedocs.io/en/latest/#msal.PublicClientApplication.acquire_token_by_device_flow
+        # or you may even turn off the blocking behavior,
+        # and then keep calling acquire_token_by_device_flow(flow) in your own customized loop.
 
     if "access_token" in result:
         session = requests.Session()
-        session.headers.update({'Authorization': f'Bearer {result["access_token"]}'})
+        session.headers.update({"Authorization": f'Bearer {result["access_token"]}'})
         return session
     else:
         print(result.get("error"))
         print(result.get("error_description"))
         print(result.get("correlation_id"))  # You may need this when reporting a bug
         return None
-  
-def profile_photo(session, *, user_id='me', save_as=None):
+
+
+def profile_photo(session, *, user_id="me", save_as=None):
     """Get profile photo, and optionally save a local copy.
 
     session = requests.Session() instance with Graph access token
@@ -211,30 +229,30 @@ def profile_photo(session, *, user_id='me', save_as=None):
     Returns a tuple of the photo (raw data), HTTP status code, content type, saved filename.
     """
 
-    endpoint = 'me/photo/$value' if user_id == 'me' else f'users/{user_id}/$value'
-    photo_response = session.get(api_endpoint(endpoint),
-                                 stream=True)
+    endpoint = "me/photo/$value" if user_id == "me" else f"users/{user_id}/$value"
+    photo_response = session.get(api_endpoint(endpoint), stream=True)
     photo_status_code = photo_response.status_code
     if photo_response.ok:
         photo = photo_response.raw.read()
         # note we remove /$value from endpoint to get metadata endpoint
         metadata_response = session.get(api_endpoint(endpoint[:-7]))
-        content_type = metadata_response.json().get('@odata.mediaContentType', '')
+        content_type = metadata_response.json().get("@odata.mediaContentType", "")
     else:
-        photo = ''
-        content_type = ''
+        photo = ""
+        content_type = ""
 
     if photo and save_as:
-        extension = content_type.split('/')[1]
-        filename = save_as + '.' + extension
-        with open(filename, 'wb') as fhandle:
+        extension = content_type.split("/")[1]
+        filename = save_as + "." + extension
+        with open(filename, "wb") as fhandle:
             fhandle.write(photo)
     else:
-        filename = ''
+        filename = ""
 
     return (photo, photo_status_code, content_type, filename)
 
-def list_mail(session, *, user_id='me', search=None):
+
+def list_mail(session, *, user_id="me", search=None):
     """List email from current user.
 
     session      = requests.Session() instance with Graph access token
@@ -244,9 +262,9 @@ def list_mail(session, *, user_id='me', search=None):
     Returns the whole JSON for the message request
     """
 
-    #MAIL_QUERY = 'https://graph.microsoft.com/v1.0/me/messages?$search="{query}"'
+    # MAIL_QUERY = 'https://graph.microsoft.com/v1.0/me/messages?$search="{query}"'
 
-    endpoint = 'me/messages' if user_id == 'me' else f'users/{user_id}/messages'
+    endpoint = "me/messages" if user_id == "me" else f"users/{user_id}/messages"
 
     if search:
         endpoint += '?$search="%s"' % search
@@ -255,7 +273,8 @@ def list_mail(session, *, user_id='me', search=None):
     response.raise_for_status()
     return response.json()
 
-def create_event(session, *, user_id='me', subject, start, end):
+
+def create_event(session, *, user_id="me", subject, start, end):
     """
     session = requests.Session() from an MSAL/ADAL login
     user_id = Graph id value for the user, or 'me' (default) for current user
@@ -264,23 +283,21 @@ def create_event(session, *, user_id='me', subject, start, end):
     end = end date/time (will attempt replace to utc if necessary)
     """
 
-    endpoint = 'me/events' if user_id == 'me' else f'users/{user_id}/events'
+    endpoint = "me/events" if user_id == "me" else f"users/{user_id}/events"
 
-    startutciso = start.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat()
+    startutciso = (
+        start.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat()
+    )
     endutciso = end.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat()
 
-    body = { "subject" : subject,
-    "start" : {
-        "dateTime" : startutciso,
-        "timeZone" : "UTC"
-    },
-    "end" : {
-        "dateTime" : endutciso,
-        "timeZone" : "UTC"
-    }}
+    body = {
+        "subject": subject,
+        "start": {"dateTime": startutciso, "timeZone": "UTC"},
+        "end": {"dateTime": endutciso, "timeZone": "UTC"},
+    }
 
-    return session.post(api_endpoint(endpoint),
-                        json=body)
+    return session.post(api_endpoint(endpoint), json=body)
+
 
 def move_mail(session, *, messageid, folderid):
     """Move an email into a specific folder
@@ -289,16 +306,17 @@ def move_mail(session, *, messageid, folderid):
     folderid = the ID of the folder to put it into. has to be encoded or a well-known one
             Find well-known ones here: https://docs.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0
     """
-    
-    endpoint = f'me/messages/{messageid}/move'
 
-    body = {"destinationId" : folderid}
+    endpoint = f"me/messages/{messageid}/move"
 
-    return session.post(api_endpoint(endpoint),
-                       json=body)
+    body = {"destinationId": folderid}
 
-def send_mail(session, *, subject, recipients, body='', content_type='HTML',
-              attachments=None):
+    return session.post(api_endpoint(endpoint), json=body)
+
+
+def send_mail(
+    session, *, subject, recipients, body="", content_type="HTML", attachments=None
+):
     """Send email from current user.
 
     session      = requests.Session() instance with Graph access token
@@ -312,35 +330,44 @@ def send_mail(session, *, subject, recipients, body='', content_type='HTML',
     """
 
     # Create recipient list in required format.
-    recipient_list = [{'EmailAddress': {'Address': address}}
-                      for address in recipients]
+    recipient_list = [{"EmailAddress": {"Address": address}} for address in recipients]
 
     # Create list of attachments in required format.
     attached_files = []
     if attachments:
         for filename in attachments:
-            b64_content = base64.b64encode(open(filename, 'rb').read())
+            b64_content = base64.b64encode(open(filename, "rb").read())
             mime_type = mimetypes.guess_type(filename)[0]
-            mime_type = mime_type if mime_type else ''
-            attached_files.append( \
-                {'@odata.type': '#microsoft.graph.fileAttachment',
-                 'ContentBytes': b64_content.decode('utf-8'),
-                 'ContentType': mime_type,
-                 'Name': filename})
+            mime_type = mime_type if mime_type else ""
+            attached_files.append(
+                {
+                    "@odata.type": "#microsoft.graph.fileAttachment",
+                    "ContentBytes": b64_content.decode("utf-8"),
+                    "ContentType": mime_type,
+                    "Name": filename,
+                }
+            )
 
     # Create email message in required format.
-    email_msg = {'Message': {'Subject': subject,
-                             'Body': {'ContentType': content_type, 'Content': body},
-                             'ToRecipients': recipient_list,
-                             'Attachments': attached_files},
-                 'SaveToSentItems': 'true'}
+    email_msg = {
+        "Message": {
+            "Subject": subject,
+            "Body": {"ContentType": content_type, "Content": body},
+            "ToRecipients": recipient_list,
+            "Attachments": attached_files,
+        },
+        "SaveToSentItems": "true",
+    }
 
     # Do a POST to Graph's sendMail API and return the response.
-    return session.post(api_endpoint('me/microsoft.graph.sendMail'),
-                        headers={'Content-Type': 'application/json'},
-                        json=email_msg)
+    return session.post(
+        api_endpoint("me/microsoft.graph.sendMail"),
+        headers={"Content-Type": "application/json"},
+        json=email_msg,
+    )
 
-def sharing_link(session, *, item_id, link_type='view'):
+
+def sharing_link(session, *, item_id, link_type="view"):
     """Get a sharing link for an item in OneDrive.
 
     session   = requests.Session() instance with Graph access token
@@ -349,15 +376,18 @@ def sharing_link(session, *, item_id, link_type='view'):
 
     Returns a tuple of the response object and the sharing link.
     """
-    endpoint = f'me/drive/items/{item_id}/createLink'
-    response = session.post(api_endpoint(endpoint),
-                            headers={'Content-Type': 'application/json'},
-                            json={'type': link_type})
+    endpoint = f"me/drive/items/{item_id}/createLink"
+    response = session.post(
+        api_endpoint(endpoint),
+        headers={"Content-Type": "application/json"},
+        json={"type": link_type},
+    )
 
     if response.ok:
         # status 201 = link created, status 200 = existing link returned
-        return (response, response.json()['link']['webUrl'])
-    return (response, '')
+        return (response, response.json()["link"]["webUrl"])
+    return (response, "")
+
 
 def make_folder(session, *, foldername, parent=None):
     """Create a folder in OneDrive
@@ -366,16 +396,16 @@ def make_folder(session, *, foldername, parent=None):
     parent = optional, defaults to root. otherwise, path to subfolder
     """
     if not parent:
-        endpoint = f'me/drive/root/children'
+        endpoint = f"me/drive/root/children"
     else:
-        endpoint = f'me/drive/root:/{parent}:/children'
+        endpoint = f"me/drive/root:/{parent}:/children"
 
     payload = {}
-    payload['name'] = foldername
-    payload['folder'] = {}
+    payload["name"] = foldername
+    payload["folder"] = {}
 
-    return session.post(api_endpoint(endpoint),
-                        json=payload)
+    return session.post(api_endpoint(endpoint), json=payload)
+
 
 def upload_file_handle(session, *, iterable, filename, folder=None):
     """Upload a file to OneDrive
@@ -397,14 +427,17 @@ def upload_file_handle(session, *, iterable, filename, folder=None):
     # create the Graph endpoint to be used
     if folder:
         # create endpoint for upload to a subfolder
-        endpoint = f'me/drive/root:/{folder}/{filename}:/content'
+        endpoint = f"me/drive/root:/{folder}/{filename}:/content"
     else:
         # create endpoint for upload to drive root folder
-        endpoint = f'me/drive/root/children/{filename}/content'
+        endpoint = f"me/drive/root/children/{filename}/content"
 
-    return session.put(api_endpoint(endpoint),
-                       headers={'content-type': 'application/octet-stream'},
-                       data=iterable)
+    return session.put(
+        api_endpoint(endpoint),
+        headers={"content-type": "application/octet-stream"},
+        data=iterable,
+    )
+
 
 def upload_file(session, *, ospath, folder=None):
     """Upload a file to OneDrive
@@ -423,6 +456,7 @@ def upload_file(session, *, ospath, folder=None):
     """
     fname_only = os.path.basename(ospath)
 
-    with open(ospath, 'rb') as fhandle:
-        return upload_file_handle(session, iterable=fhandle, filename=fname_only, folder=folder)
-    
+    with open(ospath, "rb") as fhandle:
+        return upload_file_handle(
+            session, iterable=fhandle, filename=fname_only, folder=folder
+        )
