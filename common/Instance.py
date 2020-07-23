@@ -2,6 +2,7 @@ import os
 import imp
 import _thread
 import signal
+import configparser
 from argparse import Namespace
 
 from migrate.versioning import api
@@ -28,6 +29,7 @@ class Instance(object):
         self._db_models = db_base
         self._conf_file_name = "ms-cli.conf"
         self._db_map = {}
+        self._current_user_name = None
         self.init_dir()
 
     def init_dir(self):
@@ -66,18 +68,18 @@ class Instance(object):
         exists, otherwise default to the self._config.
         """
         # TODO: Load user configuration from the file
-        pass
+        self._current_user_name = get_from_conf(config, 'user_name', self._current_user_name)
 
     def load_conf(self):
         conf_file = self.get_config_file_path()
         if not os.path.exists(conf_file):
             return
 
-        config = ConfigParser.RawConfigParser()
+        config = configparser.RawConfigParser()
         with open(conf_file) as stream:
             config.readfp(stream)
             self._config = config
-        self._parse_config()
+        self._parse_config(self._config)
 
     def _db_uri(self):
         return "sqlite:///" + self._db_path()
@@ -126,3 +128,13 @@ class Instance(object):
         print("Current database version: " + str(api.db_version(uri, repo)))
         api.upgrade(uri, repo)
         print("New database version: " + str(api.db_version(uri, repo)))
+
+
+    ############################################################################
+    def get_current_user(self):
+        from models.User import User
+        if self._current_user_name is None:
+            return Error(f'no user_name specified in {self.get_config_file_path()}')
+        db = self.get_db()
+        user = db.session.query(User).filter_by(name=self._current_user_name).first()
+        return ResultAndData(user is not None, user)

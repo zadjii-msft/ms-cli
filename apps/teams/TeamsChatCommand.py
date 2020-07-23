@@ -19,32 +19,16 @@ class TeamsChatCommand(BaseCommand):
     def do_command_with_args(self, instance, args):
         # type: (Instance, Namespace) -> ResultAndData
 
-        print("This is the teams chat command")
+        # print("This is the teams chat command")
         username = args.user
         print(f"chatting with {username}")
 
         db = instance.get_db()
 
-        # # get all the `SampleModel`s
-        # samples = db.session.query(SampleModel).all()
-        # print([f"{sample.id}:{sample.some_count}" for sample in samples])
-
-        # if db.session.query(SampleModel).count() > 0:
-        #     first_sample = db.session.query(SampleModel).first()
-        #     first_sample.some_count = first_sample.some_count + 1
-        #     print(f"incremented existing SampleModel, {first_sample.some_count}")
-        # else:
-        #     first_sample = SampleModel()
-        #     print("Created a new SampleModel")
-        #     db.session.add(first_sample)
-
-        # db.session.commit()
-        # print(
-        #     [
-        #         f"{sample.id}:{sample.some_count}"
-        #         for sample in db.session.query(SampleModel).all()
-        #     ]
-        # )
+        rd = instance.get_current_user()
+        if not rd.success:
+            return Error('no logged in user')
+        current_user = rd.data
 
         other_user = db.session.query(User).filter_by(name=username).first()
         if other_user is None:
