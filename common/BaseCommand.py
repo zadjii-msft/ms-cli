@@ -9,6 +9,7 @@ class BaseCommand(object):
     Abstracts out some boilerplate for adding a subcommand. Just define all the
     args in add_parser, and the implementation in do_command_with_args.
     """
+
     def __init__(self, subparsers):
         self._parser = self.add_parser(subparsers)
         self._parser.set_defaults(func=self.get_command())
@@ -31,6 +32,7 @@ class BaseCommand(object):
         Execute this command, with the Namespace as parsed by argparse.
         """
         return Error()
+
 
 # A sample of how to use:
 #
