@@ -294,6 +294,58 @@ def list_mail(session, *, user_id="me", search=None):
     response.raise_for_status()
     return response.json()
 
+def list_events_in_time_range(session, *, user_id="me", start, end):
+    """List events in time range for current user.
+
+    session      = requests.Session() instance with Graph access token
+    user_id = Graph id value for the user, or 'me' (default) for current user
+    start = start of time range
+    end = end of time range
+
+    Returns the whole JSON for the message request
+    """
+
+    # QUERY = https://graph.microsoft.com/v1.0/me/calendarview?startdatetime=2020-07-24T20:44:22.145Z&enddatetime=2020-07-31T20:44:22.145Z
+
+    endpoint = "me/calendarview" if user_id == "me" else f"user/{user_id}/events"
+
+    startutciso = start.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat()
+    endutciso = end.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat()
+
+    endpoint += f"?startdatetime={startutciso}Z"
+    endpoint += f"&enddatetime={endutciso}Z"
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response.json()
+
+
+def list_upcoming_events(session, *, user_id="me", how_many=3):
+    """List upcoming events for current user.
+
+    session      = requests.Session() instance with Graph access token
+    user_id = Graph id value for the user, or 'me' (default) for current user
+    how_many  = optional count of events forward in time
+
+    Returns the whole JSON for the message request
+    """
+
+    # QUERY = /events?$select=subject,organizer,start,end,location&$filter=start/dateTime ge '2020-07-24T00:00'&$orderby=start/dateTime asc&$top=3
+
+    endpoint = "me/events" if user_id == "me" else f"users/{user_id}/events"
+
+    endpoint += "?$select=subject,organizer,start,end,location"
+    nowutciso = datetime.datetime.now().astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat(timespec="minutes")
+
+    
+    endpoint += f"&$filter=start/dateTime ge \'{nowutciso}\'"
+    endpoint += "&$orderby=start/dateTime asc"
+    endpoint += f"&$top={how_many}"
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response.json()
+
 
 def create_event(session, *, user_id="me", subject, start, end):
     """
@@ -306,9 +358,7 @@ def create_event(session, *, user_id="me", subject, start, end):
 
     endpoint = "me/events" if user_id == "me" else f"users/{user_id}/events"
 
-    startutciso = (
-        start.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat()
-    )
+    startutciso = start.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat()
     endutciso = end.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat()
 
     body = {

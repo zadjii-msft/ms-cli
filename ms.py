@@ -11,6 +11,8 @@ from common.ResultAndData import *
 from common.Instance import Instance
 from apps.teams.TeamsCommand import TeamsCommand
 from apps.onedrive.OnedriveCommand import OnedriveCommand
+from apps.calendar.CalendarCommand import CalendarCommand
+from apps.mail.MailCommand import MailCommand
 
 
 # Turns VT output support on
@@ -57,6 +59,8 @@ def build_arg_parser():
     )
     teams_cmd = TeamsCommand(subparsers)
     onedrive_cmd = OnedriveCommand(subparsers)
+    calendar_cmd = CalendarCommand(subparsers)
+    mail_cmd = MailCommand(subparsers)
     
     MigrateCommand(subparsers)
     return apps_parser
