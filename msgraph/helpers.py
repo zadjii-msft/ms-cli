@@ -538,14 +538,9 @@ def list_chats(session, *, user_id="me"):
 def list_channel_messages(session, *, team_id, channel_id):
     """List channel messages for the team and channel
     session      = requests.Session() instance with Graph access token
-<<<<<<< HEAD
-    user_id = Graph id value for the user, or 'me' (default) for current user
-
-=======
     team_id = Team ID
     channel_id = Channel ID
     
->>>>>>> dev/miniksa/deltas
     Returns the whole JSON for the message request
     """
 
@@ -641,12 +636,8 @@ def list_chat_messages(session, *, user_id="me", chat_id):
     Returns the whole JSON for the message request
     """
 
-<<<<<<< HEAD
-    # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats/{id}/messages'
-=======
     # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats/{chat_id}/messages'
 
->>>>>>> dev/miniksa/deltas
     endpoint = "me/chats" if user_id == "me" else f"users/{user_id}/chats"
 
     endpoint += f"/{chat_id}/messages"
@@ -659,14 +650,9 @@ def list_chat_messages_since_time(session, *, user_id="me", chat_id, when=None):
     """List chat messages for the user and a chat
 
     session      = requests.Session() instance with Graph access token
-<<<<<<< HEAD
-    chat_id = Chat ID
-    message = text to send
-=======
     user_id = Graph id value for the user, or 'me' (default) for current user
     chat_id = Chat ID value from retrieving a list of chats or a specific chat.
     when = the most recent messages you know of or the last update time, we'll fetch things after this.
->>>>>>> dev/miniksa/deltas
 
     Returns the whole JSON for the message request
     """
@@ -713,13 +699,9 @@ def send_channel_message(session, *, team_id, channel_id, message):
 
     session      = requests.Session() instance with Graph access token
     team_id = Team ID
-<<<<<<< HEAD
-
-=======
     channel_id = Channel ID
     message = text to send
     
->>>>>>> dev/miniksa/deltas
     Returns the whole JSON for the message request
     """
 
