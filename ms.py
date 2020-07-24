@@ -10,6 +10,7 @@ from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
 from common.Instance import Instance
 from apps.teams.TeamsCommand import TeamsCommand
+from apps.teams.LogoutCommand import LogoutCommand
 from apps.onedrive.OnedriveCommand import OnedriveCommand
 
 
@@ -57,8 +58,9 @@ def build_arg_parser():
     )
     teams_cmd = TeamsCommand(subparsers)
     onedrive_cmd = OnedriveCommand(subparsers)
-    
+
     MigrateCommand(subparsers)
+    LogoutCommand(subparsers)
     return apps_parser
 
 
@@ -82,7 +84,7 @@ def dostuff2(instance):
     #response2 = helpers.list_channel_messages_since_delta(session, deltaLink = response["@odata.deltaLink"])
 
     yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
-    
+
     # response = helpers.list_channel_messages_since_time(session, team_id=team_id, channel_id = channel_id, when=yesterday)
     # print(response)
 
