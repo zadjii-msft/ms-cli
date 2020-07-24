@@ -44,6 +44,16 @@ class TeamsChatCommand(BaseCommand):
         # And how do we find just the thread with the two of us?
         #
 
+        query_string = f"%{username}%"
+        users = db.session.query(User)
+        users_like = users.filter(User.display_name.ilike(query_string)).union(
+            users.filter(User.mail.ilike(query_string))
+        )
+        # [print(f'{u.display_name}') for u in users_like.all()]
+        matched_user = users_like.first()
+        if matched_user is None:
+            return Error(f"Could not find the user:{username}")
+
         target_thread = None
 
         all_threads = db.session.query(ChatThread)
@@ -58,14 +68,14 @@ class TeamsChatCommand(BaseCommand):
             )
 
             has_me = thread_senders.filter(User.id == current_user.id).count() > 0
-            has_other = True
+            has_other = thread_senders.filter(User.id == matched_user.id).count() > 0
             is_two_people = len(thread_senders.all()) == 2
 
             # DO NOT USE .count() for this:
             # is_two_people = thread_senders.count() == 2
             # see https://docs.sqlalchemy.org/en/13/orm/query.html#sqlalchemy.orm.query.Query
             if has_me and has_other and is_two_people:
-                print("found target_thread")
+                # print("found target_thread")
                 target_thread = t
             # else:
             #     print(f'thread did not match, {has_me}, {has_other}, {senders_in_thread}, {is_two_people}')
