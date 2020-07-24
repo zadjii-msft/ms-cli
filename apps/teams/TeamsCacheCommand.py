@@ -24,12 +24,13 @@ class TeamsCacheCommand(BaseCommand):
         return TeamsCacheCommand.cache_all_messages(instance)
 
     @staticmethod
-    def cache_all_messages(instance):
+    def cache_all_messages(instance, quiet=False):
         # type: (Instance) -> ResultAndData
         db = instance.get_db()
         graph = instance.get_graph_session()
 
-        print(f"caching all messages...")
+        if not quiet:
+            print(f"caching all messages...")
 
         chats = helpers.list_chats(graph)
 
