@@ -17,9 +17,7 @@ def get_or_create_thread_model(db, thread_json):
         db.session.query(ChatThread).filter(ChatThread.graph_id == id_from_json).first()
     )
     if thread is None:
-        # print(f'found a new chat thread {id_from_json}')
         thread = ChatThread.from_json(thread_json)
-        # print(f'Created a new thread {thread.__dict__}')
         db.session.add(thread)
         db.session.commit()
     return thread
@@ -56,9 +54,6 @@ class TeamsCacheCommand(BaseCommand):
         cache_cmd = subparsers.add_parser(
             "cache", description="cache teams chat threads"
         )
-
-        # cache_cmd.add_argument("user", help="The user to chat with")
-
         return cache_cmd
 
     def do_command_with_args(self, instance, args):
@@ -69,28 +64,12 @@ class TeamsCacheCommand(BaseCommand):
         graph = instance.get_graph_session()
 
         chats = helpers.list_chats(graph)
-        # print(chats)
-        # print(json.dumps(chats, indent=2))
 
         all_thread_ids = []
         for chat in chats["value"]:
             thread = get_or_create_thread_model(db, chat)
             all_thread_ids.append(thread.graph_id)
-
-        # print('All threads:')
-        # [print(f'\t{thread.graph_id}') for thread in db.session.query(ChatThread).all()]
-
-        # chat_id = chats["value"][0]["id"]
-
-        # response = helpers.send_message(session, team_id=team_id, channel_id=chat_id, message="farts")
-        # response = helpers.send_chat_message(
-        #     session,
-        #     chat_id=chat_id,
-        #     message="hey michael this is a message mike using the tool",
-        # )
-        # print(response)
         for thread_guid in all_thread_ids:
-            # print(f'looking for messages in thread:{thread_guid}')
             thread = (
                 db.session.query(ChatThread)
                 .filter(ChatThread.graph_id == thread_guid)
@@ -100,22 +79,17 @@ class TeamsCacheCommand(BaseCommand):
                 return Error(f"the chat thread should never be None here")
 
             messages = helpers.list_chat_messages(graph, chat_id=thread_guid)
-            # print(json.dumps(messages, indent=2))
+
             for msg_json in messages["value"]:
-                print(msg_json)
                 msg_model = get_or_create_message_model(db, msg_json)
                 msg_model.thread_id = thread.id
 
                 from_id = msg_json["from"]["user"]["id"]
-                # print(f'Make sure user {from_id} is in the db...')
+                # Make sure user {from_id} is in the db
                 user_json = helpers.get_user(graph, user_id=from_id)
                 sender = get_or_create_user_model(db, user_json)
                 msg_model.from_id = sender.id
                 db.session.commit()
 
-            # db.session.commit()
-
-        # print(messages)
-        # print(json.dumps(messages, indent=2))
 
         return Success()
