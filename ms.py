@@ -10,6 +10,7 @@ from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
 from common.Instance import Instance
 from apps.teams.TeamsCommand import TeamsCommand
+from apps.onedrive.OnedriveCommand import OnedriveCommand
 
 
 # Turns VT output support on
@@ -55,6 +56,8 @@ def build_arg_parser():
         help="Which graph application to run",
     )
     teams_cmd = TeamsCommand(subparsers)
+    onedrive_cmd = OnedriveCommand(subparsers)
+    
     MigrateCommand(subparsers)
     return apps_parser
 
@@ -110,7 +113,6 @@ def dostuff2(instance):
     # print(messages)
     print(json.dumps(messages, indent=2))
     exit()
-
 
 def ms_main(argv):
 

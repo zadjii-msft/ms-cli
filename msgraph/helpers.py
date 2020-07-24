@@ -409,6 +409,57 @@ def sharing_link(session, *, item_id, link_type="view"):
         return (response, response.json()["link"]["webUrl"])
     return (response, "")
 
+def list_folder(session, *, parent=None):
+    """List contents of a folder in OneDrive
+    session  = requests.Session() instance with Graph access token
+    parent = optional, defaults to root. otherwise, path to subfolder
+    """
+    if not parent:
+        endpoint = f"me/drive/root/children"
+    else:
+        endpoint = f"me/drive/root:/{parent}:/children"
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response.json() 
+
+def get_item(session, *, path):
+    """Get a single item in OneDrive
+    session  = requests.Session() instance with Graph access token
+    path = path to item
+    """
+    endpoint = f"me/drive/root:/{path}"
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response.json() 
+
+def delete_item(session, *, item_id):
+    """Deletes a single item in OneDrive
+    session  = requests.Session() instance with Graph access token
+    item_id = item_id
+    """
+    endpoint = f"me/drive/items/{item_id}"
+
+    response = session.delete(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response
+
+def rename_item(session, *, item_id, newname):
+    """Renames a single item in OneDrive
+    session  = requests.Session() instance with Graph access token
+    item_id = item_id
+    newname = new item name
+    """
+    endpoint = f"me/drive/items/{item_id}"
+
+    payload = {}
+    payload["name"] = newname
+
+    response = session.patch(api_endpoint(endpoint), json=payload)
+    response.raise_for_status()
+    return response.json()
+
 
 def make_folder(session, *, foldername, parent=None):
     """Create a folder in OneDrive
