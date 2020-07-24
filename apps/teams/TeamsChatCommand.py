@@ -167,7 +167,7 @@ class ChatUI(object):
             elif k == "\n":
                 pass
             elif k == "\x12":  # ^R
-                TeamsCacheCommand.cache_all_messages(self.instance, quiet=true)
+                TeamsCacheCommand.cache_all_messages(self.instance, quiet=True)
                 self.draw_messages()
                 refresh_display(self)
                 refresh_display(self)
