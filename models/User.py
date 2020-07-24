@@ -28,3 +28,14 @@ class User(base):
         result.user_principal_name = json_blob["userPrincipalName"]
         result.mail = json_blob["mail"]
         return result
+
+
+def get_or_create_user_model(db, user_json):
+    # type: (SimpleDB, json) -> User
+    id_from_json = user_json["id"]
+    user_model = db.session.query(User).filter(User.guid == id_from_json).first()
+    if user_model is None:
+        user_model = User.from_json(user_json)
+        db.session.add(user_model)
+        db.session.commit()
+    return user_model

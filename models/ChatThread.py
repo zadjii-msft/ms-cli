@@ -37,3 +37,17 @@ class ChatThread(base):
         )
         result.topic = json_blob["topic"]
         return result
+
+
+def get_or_create_thread_model(db, thread_json):
+    # type: (SimpleDB, json) -> ChatThread
+
+    id_from_json = thread_json["id"]
+    thread = (
+        db.session.query(ChatThread).filter(ChatThread.graph_id == id_from_json).first()
+    )
+    if thread is None:
+        thread = ChatThread.from_json(thread_json)
+        db.session.add(thread)
+        db.session.commit()
+    return thread

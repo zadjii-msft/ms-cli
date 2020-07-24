@@ -1,52 +1,12 @@
 from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
 from models.SampleModel import SampleModel
-from models.User import User
-from models.ChatMessage import ChatMessage
-from models.ChatThread import ChatThread
+from models.User import User, get_or_create_user_model
+from models.ChatMessage import ChatMessage, get_or_create_message_model
+from models.ChatThread import ChatThread, get_or_create_thread_model
 from argparse import Namespace
 from msgraph import helpers
 import json
-
-
-def get_or_create_thread_model(db, thread_json):
-    # type: (SimpleDB, json) -> ChatThread
-
-    id_from_json = thread_json["id"]
-    thread = (
-        db.session.query(ChatThread).filter(ChatThread.graph_id == id_from_json).first()
-    )
-    if thread is None:
-        thread = ChatThread.from_json(thread_json)
-        db.session.add(thread)
-        db.session.commit()
-    return thread
-
-
-def get_or_create_message_model(db, msg_json):
-    # type: (SimpleDB, json) -> ChatMessage
-    id_from_json = msg_json["id"]
-    msg_model = (
-        db.session.query(ChatMessage)
-        .filter(ChatMessage.graph_id == id_from_json)
-        .first()
-    )
-    if msg_model is None:
-        msg_model = ChatMessage.from_json(msg_json)
-        db.session.add(msg_model)
-        db.session.commit()
-    return msg_model
-
-
-def get_or_create_user_model(db, user_json):
-    # type: (SimpleDB, json) -> User
-    id_from_json = user_json["id"]
-    user_model = db.session.query(User).filter(User.guid == id_from_json).first()
-    if user_model is None:
-        user_model = User.from_json(user_json)
-        db.session.add(user_model)
-        db.session.commit()
-    return user_model
 
 
 class TeamsCacheCommand(BaseCommand):
@@ -59,9 +19,17 @@ class TeamsCacheCommand(BaseCommand):
     def do_command_with_args(self, instance, args):
         # type: (Instance, Namespace) -> ResultAndData
 
-        db = instance.get_db()
         instance.login_to_graph()
+
+        return TeamsCacheCommand.cache_all_messages(instance)
+
+    @staticmethod
+    def cache_all_messages(instance):
+        # type: (Instance) -> ResultAndData
+        db = instance.get_db()
         graph = instance.get_graph_session()
+
+        print(f"caching all messages...")
 
         chats = helpers.list_chats(graph)
 

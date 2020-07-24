@@ -55,3 +55,18 @@ class ChatMessage(base):
         #
         # ... This might not be correct. It might be `chatId`, but you know
         # what, we've got it working, so we're leaving it.
+
+
+def get_or_create_message_model(db, msg_json):
+    # type: (SimpleDB, json) -> ChatMessage
+    id_from_json = msg_json["id"]
+    msg_model = (
+        db.session.query(ChatMessage)
+        .filter(ChatMessage.graph_id == id_from_json)
+        .first()
+    )
+    if msg_model is None:
+        msg_model = ChatMessage.from_json(msg_json)
+        db.session.add(msg_model)
+        db.session.commit()
+    return msg_model

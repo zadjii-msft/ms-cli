@@ -6,6 +6,7 @@ from models.ChatMessage import ChatMessage
 from models.ChatThread import ChatThread
 from argparse import Namespace
 from sqlalchemy import func, distinct
+from apps.teams.TeamsCacheCommand import TeamsCacheCommand
 
 
 class TeamsChatCommand(BaseCommand):
@@ -15,17 +16,20 @@ class TeamsChatCommand(BaseCommand):
         )
 
         chat_cmd.add_argument("user", help="The user to chat with")
+        chat_cmd.add_argument(
+            "--no-cache",
+            action="store_true",
+            help="if passed, disable caching on launch",
+        )
 
         return chat_cmd
 
     def do_command_with_args(self, instance, args):
         # type: (Instance, Namespace) -> ResultAndData
-
-        username = args.user
-        print(f"chatting with {username}")
-
         db = instance.get_db()
         instance.login_to_graph()
+
+        username = args.user
 
         rd = instance.get_current_user()
         if not rd.success:
@@ -53,6 +57,11 @@ class TeamsChatCommand(BaseCommand):
         matched_user = users_like.first()
         if matched_user is None:
             return Error(f"Could not find the user:{username}")
+
+        if not args.no_cache:
+            TeamsCacheCommand.cache_all_messages(instance)
+
+        print(f"chatting with {username}")
 
         target_thread = None
 
