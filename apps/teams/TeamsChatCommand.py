@@ -118,16 +118,29 @@ class TeamsChatCommand(BaseCommand):
             TITLE_COLOR = 1
             USERNAME_COLOR = 2
             DATETIME_COLOR = 3
+            FOCUSED_INPUT_COLOR = 4
+            UNFOCUSED_INPUT_COLOR = 5
 
-            curses.init_color(TITLE_COLOR, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
+            curses.init_pair(TITLE_COLOR, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
             curses.init_pair(USERNAME_COLOR, curses.COLOR_BLACK, -1)
             curses.init_pair(DATETIME_COLOR, curses.COLOR_BLACK, -1)
+            curses.init_pair(FOCUSED_INPUT_COLOR, -1, -1)
+            curses.init_pair(UNFOCUSED_INPUT_COLOR, -1, curses.COLOR_WHITE)
+
+            # Your application can determine the size of the screen by using the
+            # curses.LINES and curses.COLS variables to obtain the y and x
+            # sizes. Legal coordinates will then extend from (0,0) to
+            # (curses.LINES - 1, curses.COLS - 1).
+            window_width = curses.COLS - 1
+            window_height = curses.LINES - 1
 
             title = f'chatting with {other_user.display_name}' if other_user else 'group...'
+            title += (' ' * (window_width - len(title)))
+            prompt = 'Enter a message:'
             # stdscr.addstr(0, 0, title, curses.A_REVERSE)
             stdscr.addstr(0, 0, title, curses.color_pair(TITLE_COLOR))
+            stdscr.addch(curses.KEY_EOL, curses.color_pair(TITLE_COLOR))
 
-            stdscr.refresh()
             # # This raises ZeroDivisionError when i == 10.
             # for i in range(0, 9):
             #     v = i-10
@@ -137,23 +150,35 @@ class TeamsChatCommand(BaseCommand):
 
             # stdscr.getkey()
 
-            # Your application can determine the size of the screen by using the
-            # curses.LINES and curses.COLS variables to obtain the y and x
-            # sizes. Legal coordinates will then extend from (0,0) to
-            # (curses.LINES - 1, curses.COLS - 1).
-            window_width = curses.COLS - 1
-            window_height = curses.LINES - 1
+
+            message_box_height = 2
+            message_box_width = 20
+            msg_box_origin_row = window_height-message_box_height
+            msg_box_origin_col = len(prompt) + 2
+            # editwin = curses.newwin(msg_box_origin_row, msg_box_origin_col, message_box_height, message_box_width)
+            # editwin = curses.newwin(height, width, y, x)
+            editwin = curses.newwin(message_box_height, message_box_width, msg_box_origin_row, msg_box_origin_col)
+            # editwin.border('a', 'b')
+            editwin.bkgd(' ', curses.color_pair(UNFOCUSED_INPUT_COLOR))
+
+            stdscr.addstr(msg_box_origin_row, 0, prompt)
+            stdscr.refresh()
+            editwin.refresh()
 
             pad = curses.newpad(100, window_width)
-
+            chat_history_height = window_height - (message_box_height + 1)
 
             messages = thread.messages.order_by(ChatMessage.created_date_time).all()
             curr_row = 0
             for msg in messages:
-                username = f'@{msg.sender.display_name}: '
+                username = f'{msg.sender.display_name}: '
                 pad.addstr(curr_row, 0, username, curses.color_pair(USERNAME_COLOR))
                 pad.addstr(curr_row, len(username), f'{msg.body}')
                 curr_row+=1
+            if len(messages) == 0:
+                pad.addstr(curr_row, len(username), f'starting a new conversation with {msg.sender.display_name}')
+                curr_row+=1
+
             # txt = [
             #     f"\x1b[90m@{msg.sender.display_name}\x1b[m: {msg.body}" for msg in messages
             # ]
@@ -172,15 +197,45 @@ class TeamsChatCommand(BaseCommand):
             # (20, 75) : coordinate of lower-right corner of window area to be
             #          : filled with pad content.
             # pad.refresh( 0,0, 5,5, 20,75)
-            pad.refresh( 0,0, 1,0, window_height,window_width)
-
+            # pad.refresh( 0,0, 1,0, chat_history_height+1,window_width)
             stdscr.refresh()
+            pad.refresh( 0,0, 1,0, chat_history_height,window_width)
+
+            # stdscr.refresh()
+
+            input_line = ''
 
             exit_requested = False
             while not exit_requested:
                 k = stdscr.getkey()
                 if k == '\x03':
                     exit_requested = True
+                elif k == '\n':
+                    # editwin.border('a', 'b')
+                    editwin.bkgd(' ', curses.color_pair(FOCUSED_INPUT_COLOR))
+                    editwin.refresh()
+                    box = Textbox(editwin)
+                    stdscr.refresh()
+
+                    # Let the user edit until Ctrl-G is struck.
+                    box.edit()
+                    # Get resulting contents
+                    message = box.gather()
+                    if message == None or message == '':
+                        pass
+                    else:
+                        pad.addstr(curr_row, 0, message)
+                        curr_row+=1
+                    stdscr.refresh()
+                    pad.refresh( 0,0, 1,0, chat_history_height+1,window_width)
+                    editwin.bkgd(' ', curses.color_pair(UNFOCUSED_INPUT_COLOR))
+                    editwin.refresh()
+
+                else:
+                    stdscr.refresh()
+                    editwin.refresh()
+                    pad.refresh( 0,0, 1,0, chat_history_height+1,window_width)
+
 
         curses.wrapper(main)
 
