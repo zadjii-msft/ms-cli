@@ -20,6 +20,7 @@ class ChatUI(object):
     DATETIME_COLOR = 3
     FOCUSED_INPUT_COLOR = 4
     UNFOCUSED_INPUT_COLOR = 5
+    KEYBINDING_COLOR = 6
 
     def __init__(self, instance, thread, other_user):
         self.instance = instance
@@ -41,12 +42,20 @@ class ChatUI(object):
         )
         self.title = ""
         self.prompt = ""
+        self.keybinding_labels = ""
+
+        self.title_height = 1
 
         self.message_box_height = -1
         self.message_box_width = -1
         self.msg_box_origin_row = -1
         self.msg_box_origin_col = -1
         self.chat_history_height = -1
+
+        self.keybinding_labels_height = -1
+        self.keybinding_labels_width = -1
+        self.keybinding_labels_origin_row = -1
+        self.keybinding_labels_origin_col = -1
 
     def setup_curses(self):
         curses.use_default_colors()
@@ -60,8 +69,10 @@ class ChatUI(object):
         curses.init_pair(
             ChatUI.UNFOCUSED_INPUT_COLOR, curses.COLOR_BLACK, curses.COLOR_WHITE
         )
+        curses.init_pair(ChatUI.KEYBINDING_COLOR, curses.COLOR_WHITE, -1)
 
         self.prompt = "Enter a message:"
+        self.keybinding_labels = "| ^C: exit | ^Enter: send | ^R: Refresh messages |"
         self.update_sizes()
 
     def update_sizes(self):
@@ -69,6 +80,7 @@ class ChatUI(object):
         self.window_width = curses.COLS - 1
         self.window_height = curses.LINES - 1
 
+        self.title_height = 1
         self.title = self._raw_title + (
             " " * (self.window_width - len(self._raw_title))
         )
@@ -78,7 +90,14 @@ class ChatUI(object):
         self.msg_box_origin_row = self.window_height - self.message_box_height
         self.msg_box_origin_col = len(self.prompt) + 1
 
-        self.chat_history_height = self.window_height - (self.message_box_height + 1)
+        self.keybinding_labels_height = 1
+        self.keybinding_labels_width = self.window_width
+        self.keybinding_labels_origin_row = self.window_height
+        self.keybinding_labels_origin_col = 0
+
+        self.chat_history_height = self.window_height - (
+            self.message_box_height + self.title_height + self.keybinding_labels_height
+        )
 
     @staticmethod
     def main(stdscr, self):
@@ -86,6 +105,12 @@ class ChatUI(object):
         self.setup_curses()
 
         stdscr.addstr(0, 0, self.title, curses.color_pair(ChatUI.TITLE_COLOR))
+        stdscr.addstr(
+            self.keybinding_labels_origin_row,
+            self.keybinding_labels_origin_col,
+            self.keybinding_labels,
+            curses.color_pair(ChatUI.KEYBINDING_COLOR),
+        )
 
         # editwin = curses.newwin(height, width, y, x)
         self.editwin = curses.newwin(
@@ -129,7 +154,7 @@ class ChatUI(object):
             k = stdscr.getkey()
             if k == "\x03":
                 exit_requested = True
-            elif k == "\n":
+            elif k == "CTL_ENTER":  # normal enter is '\n'
                 if self.input_line == None or self.input_line == "":
                     pass
                 else:
@@ -139,8 +164,14 @@ class ChatUI(object):
                 self.draw_messages()
                 refresh_display(self)
                 refresh_display(self)
-
-            if k == "\x08":
+            elif k == "\n":
+                pass
+            elif k == "\x12":  # ^R
+                TeamsCacheCommand.cache_all_messages(self.instance, quiet=true)
+                self.draw_messages()
+                refresh_display(self)
+                refresh_display(self)
+            elif k == "\x08":
                 self.input_line = self.input_line[:-1]
                 self.editwin.clear()
                 self.editwin.addstr(0, 0, self.input_line)
