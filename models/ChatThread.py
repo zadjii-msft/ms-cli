@@ -22,13 +22,11 @@ class ChatThread(base):
     created_date_time = Column(DateTime)
     last_updated_time = Column(DateTime)
 
-
-
     @staticmethod
     def from_json(json_blob):
         result = ChatThread()
-        result.graph_id = json_blob['id']
+        result.graph_id = json_blob["id"]
         # result.created_date_time = TODO: convert string ("2020-07-23T17:07:17.047Z") to datetime
         # result.last_updated_time = TODO: convert string ("2020-07-23T17:07:17.047Z") to datetime
-        result.topic = json_blob['topic']
+        result.topic = json_blob["topic"]
         return result

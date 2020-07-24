@@ -153,9 +153,11 @@ class Instance(object):
         self._session = Instance._login_flow(secrets=self._appconfig)
 
         user_json = helpers.get_user(self._session)
-        self._current_user_guid = user_json['id']
+        self._current_user_guid = user_json["id"]
         db = self.get_db()
-        existing = db.session.query(User).filter_by(guid=self._current_user_guid).first()
+        existing = (
+            db.session.query(User).filter_by(guid=self._current_user_guid).first()
+        )
         if existing is None:
             new_user = User.from_json(user_json)
             db.session.add(new_user)

@@ -26,8 +26,8 @@ class User(base):
     @staticmethod
     def from_json(json_blob):
         result = User()
-        result.guid = json_blob['id']
-        result.display_name = json_blob['displayName']
-        result.user_principal_name = json_blob['userPrincipalName']
-        result.mail = json_blob['mail']
+        result.guid = json_blob["id"]
+        result.display_name = json_blob["displayName"]
+        result.user_principal_name = json_blob["userPrincipalName"]
+        result.mail = json_blob["mail"]
         return result

@@ -530,7 +530,7 @@ def list_chat_messages(session, *, user_id="me", chat_id):
     """
 
     # MAIL_QUERY = 'https://graph.microsoft.com/beta/me/chats/{id}/messages'
-    print(f'{user_id}')
+    print(f"{user_id}")
     endpoint = "me/chats" if user_id == "me" else f"users/{user_id}/chats"
 
     endpoint += f"/{chat_id}/messages"
