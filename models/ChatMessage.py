@@ -18,6 +18,7 @@ class ChatMessage(base):
 
     id = Column(Integer, primary_key=True)
 
+    # From Graph API:
     graph_id = Column(String)
     body = Column(String)
     thread_id = Column(Integer, ForeignKey("chatthread.id"))
@@ -39,12 +40,11 @@ class ChatMessage(base):
     @staticmethod
     def from_json(json_blob):
         result = ChatMessage()
-        # print(json.dumps(json_blob, indent=2))
         result.graph_id = json_blob["id"]
-        result.created_date_time = datetime_from_string(json_blob['createdDateTime'])
-        result.last_modified_date_time = datetime_from_string(json_blob['lastModifiedDateTime'])
-        # result.created_date_time = TODO: convert string ("2020-07-23T17:07:17.047Z") to datetime
-        # result.last_updated_time = TODO: convert string ("2020-07-23T17:07:17.047Z") to datetime
+        result.created_date_time = datetime_from_string(json_blob["createdDateTime"])
+        result.last_modified_date_time = datetime_from_string(
+            json_blob["lastModifiedDateTime"]
+        )
         result.body = json_blob["body"]["content"]
         result.from_guid = json_blob["from"]["user"]["id"]
         return result

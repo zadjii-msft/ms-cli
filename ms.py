@@ -101,8 +101,6 @@ def ms_main(argv):
 
     enable_vt_support()
 
-    # dostuff2(Instance())
-
     parser = build_arg_parser()
     args = parser.parse_args()
 
@@ -111,22 +109,16 @@ def ms_main(argv):
         return
 
     if args.func:
-        # TODO: If there's any authentication state we'll need to set up
-        # regardless of what command we're running, we should build some sort of
-        # common "instance" state, and use this first arg to pass it to the
-        # command
-        #
-        # This "instance" would also include things like an active DB instance
-
         instance = Instance()
         result = args.func(instance, args)
         if result is not None:
             if result.success:
                 sys.exit(0)
             else:
-                print("\x1b[31m")
-                print(result.data)
-                print("\x1b[m")
+                if result.data:
+                    print("\x1b[31m")
+                    print(result.data)
+                    print("\x1b[m")
                 sys.exit(-1)
         else:
             sys.exit(-1)

@@ -20,9 +20,6 @@ class User(base):
     user_principal_name = Column(String)
     mail = Column(String)
 
-    # def __init__(self, username):
-    #     self.name = username
-
     @staticmethod
     def from_json(json_blob):
         result = User()

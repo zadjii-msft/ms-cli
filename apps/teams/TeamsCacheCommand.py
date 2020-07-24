@@ -91,5 +91,4 @@ class TeamsCacheCommand(BaseCommand):
                 msg_model.from_id = sender.id
                 db.session.commit()
 
-
         return Success()

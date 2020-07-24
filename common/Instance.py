@@ -127,10 +127,7 @@ class Instance(object):
         migration = repo + "/versions/" + migration_name
         tmp_module = imp.new_module("old_model")
         old_model = api.create_model(uri, repo)
-        # print(tmp_module.__dict__)
-        # print(old_model)
         exec(old_model, tmp_module.__dict__)
-        # exec(old_model)
         script = api.make_update_script_for_model(
             uri, repo, tmp_module.meta, db.Base.metadata
         )

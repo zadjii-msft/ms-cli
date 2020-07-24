@@ -7,6 +7,7 @@ from models.ChatThread import ChatThread
 from argparse import Namespace
 from sqlalchemy import func, distinct
 
+
 class TeamsChatCommand(BaseCommand):
     def add_parser(self, subparsers):
         chat_cmd = subparsers.add_parser(
@@ -48,56 +49,34 @@ class TeamsChatCommand(BaseCommand):
         all_threads = db.session.query(ChatThread)
         for t in all_threads.all():
             thread_messages = t.messages
+
             # I don't understanc this, but this will get us a list of users
             # comprised of all the senders of messages in the thread
             subq = thread_messages.subquery()
-            thread_senders =  db.session.query(User).join(subq, User.guid == subq.c.from_guid)
-            # sender_names = [s.display_name for s in thread_senders.all()]
-            # print(f'{sender_names}')
-            # all_senders = thread_senders.all()
+            thread_senders = db.session.query(User).join(
+                subq, User.guid == subq.c.from_guid
+            )
+
             has_me = thread_senders.filter(User.id == current_user.id).count() > 0
             has_other = True
+            is_two_people = len(thread_senders.all()) == 2
+
             # DO NOT USE .count() for this:
             # is_two_people = thread_senders.count() == 2
             # see https://docs.sqlalchemy.org/en/13/orm/query.html#sqlalchemy.orm.query.Query
-            is_two_people = len(thread_senders.all()) == 2
             if has_me and has_other and is_two_people:
-                print('found target_thread')
+                print("found target_thread")
                 target_thread = t
             # else:
             #     print(f'thread did not match, {has_me}, {has_other}, {senders_in_thread}, {is_two_people}')
 
-
         if target_thread is None:
-            return Error(f'Could not find a thread for user:{username}')
+            return Error(f"Could not find a thread for user:{username}")
 
-        # other_user = db.session.query(User).filter_by(name=username).first()
-        # if other_user is None:
-        #     print(f"Couldn't find user {username}")
-        #     return Error()
-
-        # Get all the messages either from us to them, or from the other user to us
-        # messages_from_current = (
-        #     db.session.query(ChatMessage)
-        #     .filter(ChatMessage.sender_id == current_user.id)
-        #     .filter(ChatMessage.target_id == other_user.id)
-        # )
-        #
-        # messages_from_other = (
-        #     db.session.query(ChatMessage)
-        #     .filter(ChatMessage.sender_id == other_user.id)
-        #     .filter(ChatMessage.target_id == current_user.id)
-        # )
-        #
-        # # combine them, and get the results
-        # messages = messages_from_current.union(messages_from_other).all()
-
-        # sent_chat_messages = current_user.sent_chat_messages.all()
         messages = target_thread.messages.order_by(ChatMessage.created_date_time).all()
 
         txt = [
-            f"\x1b[90m@{msg.sender.display_name}\x1b[m: {msg.body}"
-            for msg in messages
+            f"\x1b[90m@{msg.sender.display_name}\x1b[m: {msg.body}" for msg in messages
         ]
         [print(m) for m in txt]
 
