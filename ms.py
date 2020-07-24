@@ -59,7 +59,6 @@ def build_arg_parser():
     return apps_parser
 
 
-<<<<<<< HEAD
 def dostuff2(instance):
     instance.login_to_graph()
     session = instance.get_graph_session()
@@ -67,33 +66,6 @@ def dostuff2(instance):
     # teams = helpers.list_joined_teams(session)
     # print(teams)
 
-=======
-def login_flow(*, secrets):
-    session = helpers.device_flow_session_msal(
-        secrets["MS_GRAPH_CLIENT_ID"], secrets["MS_GRAPH_SCOPES"]
-    )
-    if not session:
-        raise Exception("Couldn't connect to graph.")
-    return session
-
-
-def get_app_config():
-    secrets = json.load(open(SECRETS_FILE, "r", encoding="utf-8"))
-    config = json.load(open(CONFIG_FILE, "r", encoding="utf-8"))
-
-    appconfig = {}
-    appconfig.update(secrets)
-    appconfig.update(config)
-    return appconfig
-
-def dostuff():
-    appconfig = get_app_config()
-    session = login_flow(secrets=appconfig)
-
-    # teams = helpers.list_joined_teams(session)
-    # print(teams)
-
->>>>>>> dev/miniksa/deltas
     # team_id = teams["value"][0]["id"]
     # print(team_id)
 
@@ -102,8 +74,6 @@ def dostuff():
 
     # channel_id = channels["value"][0]["id"]
     # print(channel_id)
-<<<<<<< HEAD
-=======
 
     #response = helpers.list_channel_messages_since_time(session, team_id=team_id, channel_id = channel_id)
     #response2 = helpers.list_channel_messages_since_delta(session, deltaLink = response["@odata.deltaLink"])
@@ -112,7 +82,6 @@ def dostuff():
     
     # response = helpers.list_channel_messages_since_time(session, team_id=team_id, channel_id = channel_id, when=yesterday)
     # print(response)
->>>>>>> dev/miniksa/deltas
 
     # response = helpers.send_message(session, team_id=team_id, channel_id=channel_id, message="foobarbaz")
     # print(response)
@@ -123,17 +92,6 @@ def dostuff():
 
     chat_id = chats["value"][0]["id"]
 
-<<<<<<< HEAD
-    # response = helpers.send_message(session, team_id=team_id, channel_id=chat_id, message="farts")
-    # response = helpers.send_chat_message(
-    #     session,
-    #     chat_id=chat_id,
-    #     message="hey michael this is a message mike using the tool",
-    # )
-    # print(response)
-
-    messages = helpers.list_chat_messages(session, chat_id=chat_id)
-=======
     response = helpers.list_chat_messages_since_time(session, chat_id=chat_id)
     print(response)
 
@@ -148,7 +106,6 @@ def dostuff():
     # print(response)
 
     # messages = helpers.list_chat_messages(session, chat_id=chat_id)
->>>>>>> dev/miniksa/deltas
 
     # print(messages)
     print(json.dumps(messages, indent=2))
