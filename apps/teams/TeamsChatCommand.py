@@ -125,7 +125,7 @@ class TeamsChatCommand(BaseCommand):
             curses.init_pair(USERNAME_COLOR, curses.COLOR_BLACK, -1)
             curses.init_pair(DATETIME_COLOR, curses.COLOR_BLACK, -1)
             curses.init_pair(FOCUSED_INPUT_COLOR, -1, -1)
-            curses.init_pair(UNFOCUSED_INPUT_COLOR, -1, curses.COLOR_WHITE)
+            curses.init_pair(UNFOCUSED_INPUT_COLOR, curses.COLOR_BLACK, curses.COLOR_WHITE)
 
             # Your application can determine the size of the screen by using the
             # curses.LINES and curses.COLS variables to obtain the y and x
@@ -152,9 +152,9 @@ class TeamsChatCommand(BaseCommand):
 
 
             message_box_height = 2
-            message_box_width = 20
+            message_box_width = window_width - len(prompt) - 2
             msg_box_origin_row = window_height-message_box_height
-            msg_box_origin_col = len(prompt) + 2
+            msg_box_origin_col = len(prompt) + 1
             # editwin = curses.newwin(msg_box_origin_row, msg_box_origin_col, message_box_height, message_box_width)
             # editwin = curses.newwin(height, width, y, x)
             editwin = curses.newwin(message_box_height, message_box_width, msg_box_origin_row, msg_box_origin_col)
@@ -163,7 +163,6 @@ class TeamsChatCommand(BaseCommand):
 
             stdscr.addstr(msg_box_origin_row, 0, prompt)
             stdscr.refresh()
-            editwin.refresh()
 
             pad = curses.newpad(100, window_width)
             chat_history_height = window_height - (message_box_height + 1)
@@ -198,12 +197,22 @@ class TeamsChatCommand(BaseCommand):
             #          : filled with pad content.
             # pad.refresh( 0,0, 5,5, 20,75)
             # pad.refresh( 0,0, 1,0, chat_history_height+1,window_width)
-            stdscr.refresh()
-            pad.refresh( 0,0, 1,0, chat_history_height,window_width)
 
             # stdscr.refresh()
 
             input_line = ''
+
+            def refresh_display():
+                new_cursor_row = msg_box_origin_row + 0
+                new_cursor_col = msg_box_origin_col + len(input_line)
+                # msg_box_origin_col
+                # editwin.move(0, len(input_line))
+                stdscr.move(new_cursor_row, new_cursor_col)
+
+                stdscr.refresh()
+                editwin.refresh()
+                pad.refresh( 0,0, 1,0, chat_history_height,window_width)
+            refresh_display()
 
             exit_requested = False
             while not exit_requested:
@@ -212,29 +221,35 @@ class TeamsChatCommand(BaseCommand):
                     exit_requested = True
                 elif k == '\n':
                     # editwin.border('a', 'b')
-                    editwin.bkgd(' ', curses.color_pair(FOCUSED_INPUT_COLOR))
-                    editwin.refresh()
-                    box = Textbox(editwin)
-                    stdscr.refresh()
 
-                    # Let the user edit until Ctrl-G is struck.
-                    box.edit()
-                    # Get resulting contents
-                    message = box.gather()
-                    if message == None or message == '':
+                    if input_line == None or input_line == '':
                         pass
                     else:
-                        pad.addstr(curr_row, 0, message)
+                        pad.addstr(curr_row, 0, input_line)
                         curr_row+=1
-                    stdscr.refresh()
-                    pad.refresh( 0,0, 1,0, chat_history_height+1,window_width)
-                    editwin.bkgd(' ', curses.color_pair(UNFOCUSED_INPUT_COLOR))
-                    editwin.refresh()
+                    # stdscr.refresh()
+                    # pad.refresh( 0,0, 1,0, chat_history_height+1,window_width)
+                    input_line = ''
+                    # editwin.addstr(0, 0, input_line)
+                    editwin.clear()
+                    # editwin.refresh()
+                    refresh_display()
 
+                if k == '\x08':
+                    input_line = input_line[:-1]
+                    editwin.clear()
+                    editwin.addstr(0, 0, input_line)
+                    refresh_display()
+                    refresh_display()
                 else:
-                    stdscr.refresh()
-                    editwin.refresh()
-                    pad.refresh( 0,0, 1,0, chat_history_height+1,window_width)
+                    input_line += k
+
+                    editwin.addstr(0, 0, input_line)
+                    # stdscr.refresh()
+                    # editwin.refresh()
+                    # pad.refresh( 0,0, 1,0, chat_history_height+1,window_width)
+                    refresh_display()
+                    refresh_display()
 
 
         curses.wrapper(main)
