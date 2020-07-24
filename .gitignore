@@ -1,5 +1,8 @@
 .localdata/
 
+#vscode stuff
+.vscode/
+
 # authentication stuff
 microsoft.bin
 secrets.json
