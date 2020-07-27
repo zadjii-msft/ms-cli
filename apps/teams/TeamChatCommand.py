@@ -67,9 +67,11 @@ class TeamChatCommand(BaseCommand):
         if matched_channel is None:
             return Error(f"Could not find the channel:{channel_name}")
 
-        for msg in matched_channel.messages:
-            if msg.is_toplevel():
-                print(f"@{msg.sender.display_name}: {msg.body}")
-                replies = msg.replies.all()
-                for reply in replies:
-                    print(f"\t@{reply.sender.display_name}: {reply.body}")
+        ui = ChatUI.create_for_channel(instance, matched_channel)
+        ui.start()
+        # for msg in matched_channel.messages:
+        #     if msg.is_toplevel():
+        #         print(f"@{msg.sender.display_name}: {msg.body}")
+        #         replies = msg.replies.all()
+        #         for reply in replies:
+        #             print(f"\t@{reply.sender.display_name}: {reply.body}")

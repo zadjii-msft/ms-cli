@@ -15,6 +15,7 @@ from msgraph import helpers
 
 class ChatUI(object):
 
+    # UI Element colors. Use with curses.color_pair()
     TITLE_COLOR = 1
     USERNAME_COLOR = 2
     DATETIME_COLOR = 3
@@ -22,11 +23,51 @@ class ChatUI(object):
     UNFOCUSED_INPUT_COLOR = 5
     KEYBINDING_COLOR = 6
 
-    def __init__(self, instance, thread, other_user):
+    # Chat types
+    INVALID = -1 # Uh oh! The ChatUI wasn't set up correctly!
+    DIRECT_MESSAGE = 0 # A direct message with one other user
+    GROUP_THREAD = 1 # A chat thread with many other users. Unimplemented
+    CHANNEL_ROOT = 2 # A list of the threads in a channel in a team
+    CHANNEL_MESSAGE = 3 # A single thread within a channel in a team
+
+    @staticmethod
+    def create_for_direct_message(instance, thread, other_user):
+        # type: (Instance, ChatThread, User) -> ChatUI
+        ui = ChatUI(instance)
+        ui._mode = ChatUI.DIRECT_MESSAGE
+        ui.thread = thread
+        ui.other_user = other_user
+        return ui
+
+    @staticmethod
+    def create_for_channel(instance, channel):
+        # type: (Instance, Channel) -> ChatUI
+        ui = ChatUI(instance)
+        ui._mode = ChatUI.CHANNEL_ROOT
+        ui._team = channel.team
+        ui._channel = channel
+        return ui
+
+    @staticmethod
+    def create_for_channel_thread(instance, channel, root_message):
+        # type: (Instance, Channel, ChatMessage) -> ChatUI
+        ui = ChatUI(instance)
+        ui._mode = ChatUI.CHANNEL_MESSAGE
+        ui._team = channel.team
+        ui._channel = channel
+        ui._root_message = root_message
+        return ui
+
+    def __init__(self, instance):
+        # type: (Instance) -> None
+        self._mode = ChatUI.INVALID
         self.instance = instance
-        self.thread = thread
-        self.other_user = other_user
+        self.thread = None
+        self.other_user = None
         self.current_user = instance.get_current_user().data
+        self._team = None
+        self._channel = None
+        self._root_message = None
 
         self.stdscr = None
         self.editwin = None
@@ -35,11 +76,6 @@ class ChatUI(object):
 
         self.window_width = -1
         self.window_height = -1
-        self._raw_title = (
-            f"chatting with {self.other_user.display_name}"
-            if self.other_user
-            else "group..."
-        )
         self.title = ""
         self.prompt = ""
         self.keybinding_labels = ""
@@ -71,7 +107,7 @@ class ChatUI(object):
         )
         curses.init_pair(ChatUI.KEYBINDING_COLOR, curses.COLOR_WHITE, -1)
 
-        self.prompt = "Enter a message:"
+        self.prompt = self._get_prompt()
         self.keybinding_labels = "| ^C: exit | ^Enter: send | ^R: Refresh messages |"
         self.update_sizes()
 
@@ -81,8 +117,9 @@ class ChatUI(object):
         self.window_height = curses.LINES - 1
 
         self.title_height = 1
-        self.title = self._raw_title + (
-            " " * (self.window_width - len(self._raw_title))
+        raw_title = self._get_raw_title()
+        self.title = raw_title + (
+            " " * (self.window_width - len(raw_title))
         )
 
         self.message_box_height = 2
@@ -133,6 +170,7 @@ class ChatUI(object):
         exit_requested = False
         while not exit_requested:
             k = self.stdscr.getkey()
+            # TODO: Handle window resizing!
             if k == "\x03":
                 exit_requested = True
             elif k == "CTL_ENTER":  # normal enter is '\n'
@@ -148,7 +186,7 @@ class ChatUI(object):
             elif k == "\n":
                 pass
             elif k == "\x12":  # ^R
-                TeamsCacheCommand.cache_all_messages(self.instance, quiet=True)
+                self._fetch_new_messages()
                 self.draw_messages()
                 self.refresh_display()
                 self.refresh_display()
@@ -188,6 +226,16 @@ class ChatUI(object):
         self.pad.refresh(0, 0, 1, 0, self.chat_history_height, self.window_width)
 
     def draw_messages(self):
+        if self._mode == ChatUI.DIRECT_MESSAGE:
+            self._draw_direct_messages()
+        elif self._mode == ChatUI.GROUP_THREAD:
+            self._draw_direct_messages()
+        elif self._mode == ChatUI.CHANNEL_ROOT:
+            self._draw_channels_threads()
+        elif self._mode == ChatUI.CHANNEL_MESSAGE:
+            self._draw_thread_message()
+
+    def _draw_direct_messages(self):
         messages = self.thread.messages.order_by(ChatMessage.created_date_time).all()
         curr_row = 0
         for msg in messages:
@@ -200,12 +248,53 @@ class ChatUI(object):
         if len(messages) == 0:
             self.pad.addstr(
                 curr_row,
-                len(username),
-                f"starting a new conversation with {msg.sender.display_name}",
+                0,
+                f"starting a new conversation with {self.other_user.display_name}",
             )
             curr_row += 1
 
+    def _draw_channels_threads(self):
+        curr_row = 0
+        for msg in self._channel.messages:
+            if msg.is_toplevel():
+
+                username = f"{msg.sender.display_name}: "
+                self.pad.addstr(
+                    curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
+                )
+                self.pad.addstr(curr_row, len(username), f"{msg.body}")
+                curr_row += 1
+                replies =  msg.replies.all()
+                num_replies = len(replies)
+                if num_replies == 0:
+                    self.pad.addstr(curr_row, 2, f"(no replies yet)")
+                elif num_replies == 1:
+                    self.pad.addstr(curr_row, 2, f"1 reply")
+                else:
+                    self.pad.addstr(curr_row, 2, f"{num_replies} replies")
+                curr_row += 2
+
+                # print(f"@{msg.sender.display_name}: {msg.body}")
+                # replies = msg.replies.all()
+                # for reply in replies:
+                #     print(f"\t@{reply.sender.display_name}: {reply.body}")
+        pass
+
+    def _draw_thread_message(self):
+        pass
+
+
     def send_message(self, message):
+        if self._mode == ChatUI.DIRECT_MESSAGE:
+            self._send_direct_message(message)
+        elif self._mode == ChatUI.GROUP_THREAD:
+            self._send_direct_message(message)
+        elif self._mode == ChatUI.CHANNEL_ROOT:
+            self._create_new_thread(message)
+        elif self._mode == ChatUI.CHANNEL_MESSAGE:
+            self._reply_to_thread(message)
+
+    def _send_direct_message(self, message):
         db = self.instance.get_db()
         graph = self.instance.get_graph_session()
         response = helpers.send_chat_message(
@@ -217,3 +306,40 @@ class ChatUI(object):
         msg_model.thread_id = self.thread.id
         msg_model.from_id = self.current_user.id
         db.session.commit()
+
+    def _create_new_thread(self, message):
+        pass
+
+    def _reply_to_thread(self, message):
+        pass
+
+    def _get_raw_title(self):
+        if self._mode == ChatUI.DIRECT_MESSAGE:
+            return f"chatting with {self.other_user.display_name}"
+        elif self._mode == ChatUI.GROUP_THREAD:
+            return f"chatting with group..."
+        elif self._mode == ChatUI.CHANNEL_ROOT:
+            return f'all threads in {self._team.display_name}/{self._channel.display_name}'
+        elif self._mode == ChatUI.CHANNEL_MESSAGE:
+            return f'chatting in {self._team.display_name}/{self._channel.display_name}'
+
+    def _get_prompt(self):
+        if self._mode == ChatUI.DIRECT_MESSAGE:
+            return 'Enter a message:'
+        elif self._mode == ChatUI.GROUP_THREAD:
+            return 'Enter a message:'
+        elif self._mode == ChatUI.CHANNEL_ROOT:
+            return 'Start a thread: '
+        elif self._mode == ChatUI.CHANNEL_MESSAGE:
+            return 'Enter a message:'
+
+    def _fetch_new_messages(self):
+        if self._mode == ChatUI.DIRECT_MESSAGE:
+            TeamsCacheCommand.cache_all_messages(self.instance, quiet=True)
+        elif self._mode == ChatUI.GROUP_THREAD:
+            TeamsCacheCommand.cache_all_messages(self.instance, quiet=True)
+        elif self._mode == ChatUI.CHANNEL_ROOT:
+            pass # TODO
+        elif self._mode == ChatUI.CHANNEL_MESSAGE:
+            pass # TODO
+
