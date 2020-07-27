@@ -46,6 +46,7 @@ class ChatUI(object):
         ui._mode = ChatUI.CHANNEL_ROOT
         ui._team = channel.team
         ui._channel = channel
+        ui._selected_thread_index = 0
         return ui
 
     @staticmethod
@@ -56,6 +57,7 @@ class ChatUI(object):
         ui._team = channel.team
         ui._channel = channel
         ui._root_message = root_message
+        ui._selected_thread_index = None
         return ui
 
     def __init__(self, instance):
@@ -68,6 +70,9 @@ class ChatUI(object):
         self._team = None
         self._channel = None
         self._root_message = None
+        self._selected_thread_index = None
+        self.exit_requested = False
+        self._toplevel_messages = []
 
         self.stdscr = None
         self.editwin = None
@@ -93,10 +98,23 @@ class ChatUI(object):
         self.keybinding_labels_origin_row = -1
         self.keybinding_labels_origin_col = -1
 
+    def open_thread(self, chat_message):
+        self._mode = ChatUI.CHANNEL_MESSAGE
+        self._root_message = chat_message
+        self._toplevel_messages = []
+        self._selected_thread_index = None
+        self.setup_curses()
+        self.draw_titlebar()
+        self.draw_prompt()
+        self.draw_messages()
+        self.refresh_display()
+        self.refresh_display()
+
+
     def setup_curses(self):
         curses.use_default_colors()
         # Clear screen
-        self.stdscr.clear()
+        # self.stdscr.clear()
 
         curses.init_pair(ChatUI.TITLE_COLOR, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
         curses.init_pair(ChatUI.USERNAME_COLOR, curses.COLOR_BLACK, -1)
@@ -136,11 +154,7 @@ class ChatUI(object):
             self.message_box_height + self.title_height + self.keybinding_labels_height
         )
 
-    @staticmethod
-    def main(stdscr, self):
-        self.stdscr = stdscr
-        self.setup_curses()
-
+    def draw_titlebar(self):
         self.stdscr.addstr(0, 0, self.title, curses.color_pair(ChatUI.TITLE_COLOR))
         self.stdscr.addstr(
             self.keybinding_labels_origin_row,
@@ -148,6 +162,17 @@ class ChatUI(object):
             self.keybinding_labels,
             curses.color_pair(ChatUI.KEYBINDING_COLOR),
         )
+
+    def draw_prompt(self):
+        self.stdscr.addstr(self.msg_box_origin_row, 0, self.prompt)
+
+
+    @staticmethod
+    def main(stdscr, self):
+        self.stdscr = stdscr
+        self.setup_curses()
+
+        self.draw_titlebar()
 
         # editwin = curses.newwin(height, width, y, x)
         self.editwin = curses.newwin(
@@ -158,7 +183,7 @@ class ChatUI(object):
         )
         self.editwin.bkgd(" ", curses.color_pair(ChatUI.UNFOCUSED_INPUT_COLOR))
 
-        self.stdscr.addstr(self.msg_box_origin_row, 0, self.prompt)
+        self.draw_prompt()
         self.stdscr.refresh()
 
         self.pad = curses.newpad(100, self.window_width)
@@ -167,44 +192,72 @@ class ChatUI(object):
 
         self.refresh_display()
 
-        exit_requested = False
-        while not exit_requested:
+        self.exit_requested = False
+        while not self.exit_requested:
             k = self.stdscr.getkey()
-            # TODO: Handle window resizing!
-            if k == "\x03":
-                exit_requested = True
-            elif k == "CTL_ENTER":  # normal enter is '\n'
-                if self.input_line == None or self.input_line == "":
-                    pass
-                else:
-                    self.send_message(self.input_line)
-                self.input_line = ""
-                self.editwin.clear()
-                self.draw_messages()
-                self.refresh_display()
-                self.refresh_display()
-            elif k == "\n":
-                pass
-            elif k == "\x12":  # ^R
-                self._fetch_new_messages()
-                self.draw_messages()
-                self.refresh_display()
-                self.refresh_display()
-            elif k == "\x08":
-                self.input_line = self.input_line[:-1]
-                self.editwin.clear()
-                self.editwin.addstr(0, 0, self.input_line)
-                self.refresh_display()
-                self.refresh_display()
-            else:
-                self.input_line += k
+            self._handle_key(k)
 
-                self.editwin.addstr(0, 0, self.input_line)
-                self.refresh_display()
-                self.refresh_display()
+
+
+    def _handle_key(self, k):
+        handled = False
+        if self._mode == ChatUI.DIRECT_MESSAGE:
+            pass
+        elif self._mode == ChatUI.GROUP_THREAD:
+            pass
+        elif self._mode == ChatUI.CHANNEL_ROOT:
+            handled = self._channel_handle_key(k)
+        elif self._mode == ChatUI.CHANNEL_MESSAGE:
+            pass
+        if not handled:
+            handled = self._base_handle_key(k)
+
+    def _channel_handle_key(self, k):
+        # TODO: Handle window resizing!
+        if k == "\n":
+            self.open_thread(self._toplevel_messages[self._selected_thread_index])
+        # elif k == "KEY_A2": # UP
+        # elif k == "KEY_C2": # DOWN
+
+
+    def _base_handle_key(self, k):
+        # TODO: Handle window resizing!
+        if k == "\x03":
+            self.exit_requested = True
+        elif k == "CTL_ENTER":  # normal enter is '\n'
+            if self.input_line == None or self.input_line == "":
+                pass
+            else:
+                self.send_message(self.input_line)
+            self.input_line = ""
+            self.editwin.clear()
+            self.draw_messages()
+            self.refresh_display()
+            self.refresh_display()
+        elif k == "\n":
+            pass
+        elif k == "\x12":  # ^R
+            self._fetch_new_messages()
+            self.draw_messages()
+            self.refresh_display()
+            self.refresh_display()
+        elif k == "\x08":
+            self.input_line = self.input_line[:-1]
+            self.editwin.clear()
+            self.editwin.addstr(0, 0, self.input_line)
+            self.refresh_display()
+            self.refresh_display()
+        else:
+            self.input_line += k
+            self.editwin.addstr(0, 0, self.input_line)
+            self.refresh_display()
+            self.refresh_display()
+
 
     def start(self):
         curses.wrapper(ChatUI.main, self)
+
+        # return self._selected_chat_message
 
     def refresh_display(self):
         new_cursor_row = self.msg_box_origin_row + 0
@@ -226,6 +279,7 @@ class ChatUI(object):
         self.pad.refresh(0, 0, 1, 0, self.chat_history_height, self.window_width)
 
     def draw_messages(self):
+        self.pad.clear()
         if self._mode == ChatUI.DIRECT_MESSAGE:
             self._draw_direct_messages()
         elif self._mode == ChatUI.GROUP_THREAD:
@@ -254,10 +308,11 @@ class ChatUI(object):
             curr_row += 1
 
     def _draw_channels_threads(self):
+        self._toplevel_messages = []
         curr_row = 0
         for msg in self._channel.messages:
             if msg.is_toplevel():
-
+                self._toplevel_messages.append(msg)
                 username = f"{msg.sender.display_name}: "
                 self.pad.addstr(
                     curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
@@ -282,7 +337,24 @@ class ChatUI(object):
 
     def _draw_thread_message(self):
         pass
+        curr_row = 0
+        msg = self._root_message
 
+        username = f"{msg.sender.display_name}: "
+        self.pad.addstr(
+            curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
+        )
+        self.pad.addstr(curr_row, len(username), f"{msg.body}")
+        curr_row += 1
+
+        replies = msg.replies.all()
+        for reply in replies:
+            username = f"  {reply.sender.display_name}: "
+            self.pad.addstr(
+                curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
+            )
+            self.pad.addstr(curr_row, len(username), f"{reply.body}")
+            curr_row += 1
 
     def send_message(self, message):
         if self._mode == ChatUI.DIRECT_MESSAGE:
