@@ -14,10 +14,10 @@ from time import sleep
 from msgraph import helpers
 
 
-class TeamsChatCommand(BaseCommand):
+class DirectChatCommand(BaseCommand):
     def add_parser(self, subparsers):
         chat_cmd = subparsers.add_parser(
-            "chat", description="This is the teams chat UI"
+            "chat", description="This is the teams chat UI, for chatting with another user"
         )
 
         chat_cmd.add_argument("user", help="The user to chat with")

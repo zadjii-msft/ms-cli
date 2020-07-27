@@ -1,10 +1,11 @@
 from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
 from argparse import Namespace
-from apps.teams.TeamsChatCommand import TeamsChatCommand
+from apps.teams.DirectChatCommand import DirectChatCommand
 from apps.teams.TeamsCacheCommand import TeamsCacheCommand
 from apps.teams.ListTeamsCommand import ListTeamsCommand
 from apps.teams.TeamsTeamCommand import TeamsTeamCommand
+from apps.teams.TeamChatCommand import TeamChatCommand
 
 
 class TeamsCommand(BaseCommand):
@@ -23,10 +24,11 @@ class TeamsCommand(BaseCommand):
             description="Teams commands",
             help="Which teams command to run",
         )
-        teams_chat_cmd = TeamsChatCommand(subparsers)
+        teams_chat_cmd = DirectChatCommand(subparsers)
         teams_cache_cmd = TeamsCacheCommand(subparsers)
         ListTeamsCommand(subparsers)
         TeamsTeamCommand(subparsers)
+        TeamChatCommand(subparsers)
         return teams_cmd
 
     def do_command_with_args(self, instance, args):
