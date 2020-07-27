@@ -2,6 +2,7 @@ from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
 from argparse import Namespace
 
+
 class MailCommand(BaseCommand):
     def add_parser(self, subparsers):
         mail_cmd = subparsers.add_parser(
@@ -18,7 +19,7 @@ class MailCommand(BaseCommand):
             description="Mail commands",
             help="Which mail command to run",
         )
-                
+
         return mail_cmd
 
     def do_command_with_args(self, instance, args):

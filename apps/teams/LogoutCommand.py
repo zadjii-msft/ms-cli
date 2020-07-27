@@ -19,6 +19,8 @@ class LogoutCommand(BaseCommand):
 
     def do_command_with_args(self, instance, args):
         # type: (Instance, Namespace) -> ResultAndData
-        ms_cli_root = os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        os.remove(os.path.join(ms_cli_root, 'microsoft.bin'))
+        ms_cli_root = os.path.abspath(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        )
+        os.remove(os.path.join(ms_cli_root, "microsoft.bin"))
         return Success()

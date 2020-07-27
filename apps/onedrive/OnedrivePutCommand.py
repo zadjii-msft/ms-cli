@@ -7,15 +7,16 @@ from msgraph import helpers
 import requests
 import os
 
+
 class OnedrivePutCommand(BaseCommand):
     def add_parser(self, subparsers):
         list_cmd = subparsers.add_parser(
             "put", description="Puts an item into OneDrive"
         )
 
-        list_cmd.add_argument('localPath', type=argparse.FileType('rb'))
-        list_cmd.add_argument('remotePath', nargs=argparse.REMAINDER)
-        
+        list_cmd.add_argument("localPath", type=argparse.FileType("rb"))
+        list_cmd.add_argument("remotePath", nargs=argparse.REMAINDER)
+
         return list_cmd
 
     def do_command_with_args(self, instance, args):
@@ -30,7 +31,7 @@ class OnedrivePutCommand(BaseCommand):
 
         graph = instance.get_graph_session()
 
-        if (len(args.remotePath) > 1):
+        if len(args.remotePath) > 1:
             return Error("Too many paths")
 
         filename = args.localPath.name

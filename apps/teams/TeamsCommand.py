@@ -4,6 +4,7 @@ from argparse import Namespace
 from apps.teams.TeamsChatCommand import TeamsChatCommand
 from apps.teams.TeamsCacheCommand import TeamsCacheCommand
 from apps.teams.ListTeamsCommand import ListTeamsCommand
+from apps.teams.TeamsTeamCommand import TeamsTeamCommand
 
 
 class TeamsCommand(BaseCommand):
@@ -25,6 +26,7 @@ class TeamsCommand(BaseCommand):
         teams_chat_cmd = TeamsChatCommand(subparsers)
         teams_cache_cmd = TeamsCacheCommand(subparsers)
         ListTeamsCommand(subparsers)
+        TeamsTeamCommand(subparsers)
         return teams_cmd
 
     def do_command_with_args(self, instance, args):

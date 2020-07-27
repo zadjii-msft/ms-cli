@@ -26,6 +26,10 @@ class ChatMessage(base):
     created_date_time = Column(DateTime)
     last_modified_date_time = Column(DateTime)
 
+    team_id = Column(String, ForeignKey("team.graph_id"))
+    channel_id = Column(String, ForeignKey("channel.graph_id"))
+    reply_to_id = Column(String, ForeignKey("chatmessage.graph_id"))
+
     sender = relationship(
         "User",
         foreign_keys=[from_guid],
@@ -35,6 +39,14 @@ class ChatMessage(base):
         "ChatThread",
         foreign_keys=[thread_id],
         backref=backref("messages", remote_side=[thread_id], lazy="dynamic"),
+    )
+    channel = relationship(
+        "Channel",
+        foreign_keys=[channel_id],
+        backref=backref("messages", remote_side=[channel_id], lazy="dynamic"),
+    )
+    replies = relationship(
+        "ChatMessage", backref=backref("parent", remote_side=[graph_id]), lazy="dynamic"
     )
 
     @staticmethod
@@ -47,6 +59,13 @@ class ChatMessage(base):
         )
         result.body = json_blob["body"]["content"]
         result.from_guid = json_blob["from"]["user"]["id"]
+
+        result.reply_to_id = json_blob["replyToId"]
+
+        if "channelIdentity" in json_blob:
+            result.team_id = json_blob["channelIdentity"]["teamId"]
+            result.channel_id = json_blob["channelIdentity"]["channelId"]
+
         return result
 
         # NOTE! The chat message json doesn't include the thread ID. So
@@ -55,6 +74,15 @@ class ChatMessage(base):
         #
         # ... This might not be correct. It might be `chatId`, but you know
         # what, we've got it working, so we're leaving it.
+
+    def is_channel_message(self):
+        return (self.channel_id is not None) and (self.team_id is not None)
+
+    def is_reply(self):
+        return self.is_channel_message() and (self.reply_to_id is not None)
+
+    def is_toplevel(self):
+        return self.is_channel_message() and (self.reply_to_id is None)
 
 
 def get_or_create_message_model(db, msg_json):

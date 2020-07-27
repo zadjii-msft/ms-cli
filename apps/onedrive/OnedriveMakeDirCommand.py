@@ -7,15 +7,18 @@ from msgraph import helpers
 import requests
 import os
 
+
 class OnedriveMakeDirCommand(BaseCommand):
     def add_parser(self, subparsers):
         list_cmd = subparsers.add_parser(
             "mkdir", description="Makes a subdirectory in one drive"
         )
 
-        list_cmd.add_argument('name', help = "new name for the item")
-        list_cmd.add_argument('path', help = "path to the parent folder", nargs=argparse.REMAINDER)
-                
+        list_cmd.add_argument("name", help="new name for the item")
+        list_cmd.add_argument(
+            "path", help="path to the parent folder", nargs=argparse.REMAINDER
+        )
+
         return list_cmd
 
     def do_command_with_args(self, instance, args):
@@ -30,7 +33,7 @@ class OnedriveMakeDirCommand(BaseCommand):
 
         graph = instance.get_graph_session()
 
-        if (len(args.path) > 1):
+        if len(args.path) > 1:
             return Error("Too many paths")
 
         newitemname = args.name
@@ -42,7 +45,7 @@ class OnedriveMakeDirCommand(BaseCommand):
         else:
             print(f"Creating directory {newitemname} at root...")
             helpers.make_folder(graph, foldername=newitemname)
-                 
+
         print(f"Done")
 
         return Success()

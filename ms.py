@@ -84,8 +84,8 @@ def dostuff2(instance):
     # channel_id = channels["value"][0]["id"]
     # print(channel_id)
 
-    #response = helpers.list_channel_messages_since_time(session, team_id=team_id, channel_id = channel_id)
-    #response2 = helpers.list_channel_messages_since_delta(session, deltaLink = response["@odata.deltaLink"])
+    # response = helpers.list_channel_messages_since_time(session, team_id=team_id, channel_id = channel_id)
+    # response2 = helpers.list_channel_messages_since_delta(session, deltaLink = response["@odata.deltaLink"])
 
     yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
 
@@ -119,6 +119,7 @@ def dostuff2(instance):
     # print(messages)
     print(json.dumps(messages, indent=2))
     exit()
+
 
 def ms_main(argv):
 

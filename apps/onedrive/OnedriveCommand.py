@@ -8,6 +8,7 @@ from apps.onedrive.OnedriveRenameCommand import OnedriveRenameCommand
 from apps.onedrive.OnedriveMakeDirCommand import OnedriveMakeDirCommand
 from apps.onedrive.OnedriveListCommand import OnedriveListCommand
 
+
 class OnedriveCommand(BaseCommand):
     def add_parser(self, subparsers):
         onedrive_cmd = subparsers.add_parser(
@@ -30,7 +31,7 @@ class OnedriveCommand(BaseCommand):
         onedrive_rename_cmd = OnedriveRenameCommand(subparsers)
         onedrive_makedir_cmd = OnedriveMakeDirCommand(subparsers)
         onedrive_list_cmd = OnedriveListCommand(subparsers)
-        
+
         return onedrive_cmd
 
     def do_command_with_args(self, instance, args):

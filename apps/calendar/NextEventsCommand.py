@@ -7,14 +7,15 @@ from msgraph import helpers
 from tabulate import tabulate
 import os
 
+
 class NextEventsCommand(BaseCommand):
     def add_parser(self, subparsers):
         list_cmd = subparsers.add_parser(
             "next", description="Gets your next several calendar events"
         )
 
-        list_cmd.add_argument('count', nargs=argparse.REMAINDER)
-        
+        list_cmd.add_argument("count", nargs=argparse.REMAINDER)
+
         return list_cmd
 
     def do_command_with_args(self, instance, args):
@@ -29,7 +30,7 @@ class NextEventsCommand(BaseCommand):
 
         graph = instance.get_graph_session()
 
-        if (len(args.count) > 1):
+        if len(args.count) > 1:
             return Error("Too few/many paths")
 
         count = 3
@@ -43,16 +44,27 @@ class NextEventsCommand(BaseCommand):
 
         events = []
 
-        for blob in blobs['value']:
+        for blob in blobs["value"]:
             e = CalEvent.from_json(blob)
             events.append(e)
 
         table = []
 
         for e in events:
-            row = [e.subject, e.start.strftime("%c"), e.end.strftime("%c"), e.location, e.organizer]
+            row = [
+                e.subject,
+                e.start.strftime("%c"),
+                e.end.strftime("%c"),
+                e.location,
+                e.organizer,
+            ]
             table.append(row)
 
-        print(tabulate(table, headers=["Title", "Start Time", "End Time", "Location", "Created By"]))
+        print(
+            tabulate(
+                table,
+                headers=["Title", "Start Time", "End Time", "Location", "Created By"],
+            )
+        )
 
         return Success()

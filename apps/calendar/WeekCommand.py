@@ -8,6 +8,7 @@ from tabulate import tabulate
 import datetime
 import os
 
+
 class WeekCommand(BaseCommand):
     def add_parser(self, subparsers):
         list_cmd = subparsers.add_parser(
@@ -39,16 +40,27 @@ class WeekCommand(BaseCommand):
 
         events = []
 
-        for blob in blobs['value']:
+        for blob in blobs["value"]:
             e = CalEvent.from_json(blob)
             events.append(e)
 
         table = []
 
         for e in events:
-            row = [e.subject, e.start.strftime("%c"), e.end.strftime("%c"), e.location, e.organizer]
+            row = [
+                e.subject,
+                e.start.strftime("%c"),
+                e.end.strftime("%c"),
+                e.location,
+                e.organizer,
+            ]
             table.append(row)
 
-        print(tabulate(table, headers=["Title", "Start Time", "End Time", "Location", "Created By"]))
+        print(
+            tabulate(
+                table,
+                headers=["Title", "Start Time", "End Time", "Location", "Created By"],
+            )
+        )
 
         return Success()
