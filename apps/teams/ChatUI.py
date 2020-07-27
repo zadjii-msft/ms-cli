@@ -78,13 +78,15 @@ class ChatUI(object):
         self.stdscr = None
         self.editwin = None
         self.pad = None
+
         self.input_line = ""
+        self._composing_new_thread = False
 
         self.window_width = -1
         self.window_height = -1
         self.title = ""
         self.prompt = ""
-        self.keybinding_labels = ""
+        # self.keybinding_labels = ""
 
         self.title_height = 1
 
@@ -106,6 +108,7 @@ class ChatUI(object):
         self._selected_thread_index = None
         self.setup_curses()
         self.draw_titlebar()
+        self.draw_keybindings()
         self.draw_prompt()
         self.draw_messages()
         self.refresh_display()
@@ -127,7 +130,7 @@ class ChatUI(object):
         curses.init_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR, -1, curses.COLOR_WHITE)
 
         self.prompt = self._get_prompt()
-        self.keybinding_labels = "| ^C: exit | ^Enter: send | ^R: Refresh messages |"
+        # self.keybinding_labels = "| ^C: exit | ^Enter: send | ^R: Refresh messages |"
         self.update_sizes()
 
     def update_sizes(self):
@@ -155,10 +158,26 @@ class ChatUI(object):
 
     def draw_titlebar(self):
         self.stdscr.addstr(0, 0, self.title, curses.color_pair(ChatUI.TITLE_COLOR))
+
+    def _get_keybindings_labels(self):
+        labels = "| ^C: exit | ^Enter: send | ^R: refresh |"
+        if self._mode == ChatUI.CHANNEL_ROOT:
+            if self._composing_new_thread:
+                labels = "| ^C: exit | ^Enter: send | ^R: refresh | Esc: cancel |"
+            else:
+                labels = "| ^C: exit | Enter: open  | ^R: refresh | ^N: new thread | ↑↓: select thread |"
+        else:
+            pass
+
+
+        return labels
+
+
+    def draw_keybindings(self):
         self.stdscr.addstr(
             self.keybinding_labels_origin_row,
             self.keybinding_labels_origin_col,
-            self.keybinding_labels,
+            self._get_keybindings_labels(),
             curses.color_pair(ChatUI.KEYBINDING_COLOR),
         )
 
@@ -171,6 +190,7 @@ class ChatUI(object):
         self.setup_curses()
 
         self.draw_titlebar()
+        self.draw_keybindings()
 
         # editwin = curses.newwin(height, width, y, x)
         self.editwin = curses.newwin(
