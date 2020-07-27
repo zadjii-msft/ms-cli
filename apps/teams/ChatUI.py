@@ -110,6 +110,7 @@ class ChatUI(object):
         self.draw_titlebar()
         self.draw_keybindings()
         self.draw_prompt()
+        self.draw_edit_box()
         self.draw_messages()
         self.refresh_display()
         self.refresh_display()
@@ -122,9 +123,9 @@ class ChatUI(object):
         curses.init_pair(ChatUI.TITLE_COLOR, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
         curses.init_pair(ChatUI.USERNAME_COLOR, curses.COLOR_BLACK, -1)
         curses.init_pair(ChatUI.DATETIME_COLOR, curses.COLOR_BLACK, -1)
-        curses.init_pair(ChatUI.FOCUSED_INPUT_COLOR, -1, -1)
+        curses.init_pair(ChatUI.FOCUSED_INPUT_COLOR, curses.COLOR_BLACK, curses.COLOR_WHITE)
         curses.init_pair(
-            ChatUI.UNFOCUSED_INPUT_COLOR, curses.COLOR_BLACK, curses.COLOR_WHITE
+            ChatUI.UNFOCUSED_INPUT_COLOR, curses.COLOR_WHITE, curses.COLOR_BLACK
         )
         curses.init_pair(ChatUI.KEYBINDING_COLOR, curses.COLOR_WHITE, -1)
         curses.init_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR, -1, curses.COLOR_WHITE)
@@ -174,6 +175,10 @@ class ChatUI(object):
 
 
     def draw_keybindings(self):
+        self.stdscr.move(
+            self.keybinding_labels_origin_row,
+            self.keybinding_labels_origin_col)
+        self.stdscr.clrtoeol()
         self.stdscr.addstr(
             self.keybinding_labels_origin_row,
             self.keybinding_labels_origin_col,
@@ -183,6 +188,21 @@ class ChatUI(object):
 
     def draw_prompt(self):
         self.stdscr.addstr(self.msg_box_origin_row, 0, self.prompt)
+
+    def draw_edit_box(self):
+        attr = curses.color_pair(ChatUI.FOCUSED_INPUT_COLOR)
+        if self._mode == ChatUI.CHANNEL_ROOT and not self._composing_new_thread:
+            attr = curses.color_pair(ChatUI.UNFOCUSED_INPUT_COLOR)
+            curses.curs_set(0) # hide the cursor
+        else:
+            curses.curs_set(1) # show the cursor
+
+
+        self.editwin.bkgd(" ", attr)
+
+        self.editwin.clear()
+        self.editwin.addstr(0, 0, self.input_line)
+
 
     @staticmethod
     def main(stdscr, self):
@@ -199,7 +219,7 @@ class ChatUI(object):
             self.msg_box_origin_row,
             self.msg_box_origin_col,
         )
-        self.editwin.bkgd(" ", curses.color_pair(ChatUI.UNFOCUSED_INPUT_COLOR))
+        self.draw_edit_box()
 
         self.draw_prompt()
         self.stdscr.refresh()
@@ -234,26 +254,43 @@ class ChatUI(object):
             self.open_thread(self._toplevel_messages[self._selected_thread_index])
             handled = True
         elif k == "KEY_A2":  # UP
-            self._selected_thread_index = self._selected_thread_index - 1
-            if self._selected_thread_index < 0:
-                self._selected_thread_index = 0
-            self.draw_messages()
-            self.refresh_display()
-            handled = True
+            if self._composing_new_thread:
+                pass
+            else:
+                self._selected_thread_index = self._selected_thread_index - 1
+                if self._selected_thread_index < 0:
+                    self._selected_thread_index = 0
+                self.draw_messages()
+                self.refresh_display()
+                handled = True
         elif k == "KEY_C2":  # DOWN
-            self._selected_thread_index = self._selected_thread_index + 1
-            if self._selected_thread_index >= len(self._toplevel_messages):
-                self._selected_thread_index = self._toplevel_messages - 1
-            self.draw_messages()
-            handled = True
-            self.refresh_display()
+            if self._composing_new_thread:
+                pass
+            else:
+                self._selected_thread_index = self._selected_thread_index + 1
+                if self._selected_thread_index >= len(self._toplevel_messages):
+                    self._selected_thread_index = len(self._toplevel_messages) - 1
+                self.draw_messages()
+                handled = True
+                self.refresh_display()
         elif k == "\x0e":  # ^N
-            # start composing a new message
-            pass
-            # self._fetch_new_messages()
-            # self.draw_messages()
-            # self.refresh_display()
-            # self.refresh_display()
+            if not self._composing_new_thread:
+                # start composing a new message
+                self._composing_new_thread = True
+                self.draw_keybindings()
+                self.draw_edit_box()
+                self.refresh_display()
+                # curses.curs_set(1) # show the cursor
+            handled = True
+        elif k == "\x1b":  # Esc
+            if self._composing_new_thread:
+                # start composing a new message
+                self._composing_new_thread = False
+                self.draw_keybindings()
+                self.draw_edit_box()
+                self.refresh_display()
+                # curses.curs_set(0) # hide the cursor
+            handled = True
         return handled
 
     def _base_handle_key(self, k):
@@ -266,7 +303,7 @@ class ChatUI(object):
             else:
                 self.send_message(self.input_line)
             self.input_line = ""
-            self.editwin.clear()
+            self.draw_edit_box()
             self.draw_messages()
             self.refresh_display()
             self.refresh_display()
@@ -279,13 +316,12 @@ class ChatUI(object):
             self.refresh_display()
         elif k == "\x08":
             self.input_line = self.input_line[:-1]
-            self.editwin.clear()
-            self.editwin.addstr(0, 0, self.input_line)
+            self.draw_edit_box()
             self.refresh_display()
             self.refresh_display()
         else:
             self.input_line += k
-            self.editwin.addstr(0, 0, self.input_line)
+            self.draw_edit_box()
             self.refresh_display()
             self.refresh_display()
 
