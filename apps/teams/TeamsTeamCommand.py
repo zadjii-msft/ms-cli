@@ -82,55 +82,27 @@ class TeamsTeamCommand(BaseCommand):
         if matched_team is None:
             return Error(f"Could not find the team:{team_name}")
 
-        # channels = matched_team.get_channels_json(graph)
-        # for channel_json in channels['value']:
-        # print(json.dumps(channels, indent=2))
-        #
-        #     print('='*80)
-        #     response = helpers.list_channel_messages(graph, team_id=matched_team.graph_id, channel_id=channel_json['id'])
-        #     print(json.dumps(response, indent=2))
-        #     for chat_json in response['value']:
-        #         print('-'*80)
-        #         chat_id = chat_json['id']
-        #         chat_body = chat_json['body']['content']
-        #         print(f'{chat_id} - {chat_body}')
-        #         replies = helpers.list_channel_message_replies(graph, team_id=matched_team.graph_id, channel_id=channel_json['id'], chat_id=chat_id)
-        #         print(json.dumps(replies, indent=2))
-        #         print('-'*80)
-        #     # print(response)
-
         TeamsTeamCommand.cache_all_channels(instance, matched_team)
         channels = matched_team.channels.all()
-        # for chan in channels:
-        #     print("=" * 80)
-        #     response = helpers.list_channel_messages(
-        #         graph, team_id=matched_team.graph_id, channel_id=chan.graph_id
-        #     )
-        #     print(json.dumps(response, indent=2))
-        #     for chat_json in response["value"]:
-        #         print("-" * 80)
-        #         chat_id = chat_json["id"]
-        #         chat_body = chat_json["body"]["content"]
-        #         print(f"{chat_id} - {chat_body}")
-        #         replies = helpers.list_channel_message_replies(
-        #             graph,
-        #             team_id=matched_team.graph_id,
-        #             channel_id=chan.graph_id,
-        #             chat_id=chat_id,
-        #         )
-        #         print(json.dumps(replies, indent=2))
-        #         print("-" * 80)
 
-        for chan in channels:
-            TeamsTeamCommand.cache_messages_in_channel(instance, chan)
+        if not args.no_cache:
+            for chan in channels:
+                TeamsTeamCommand.cache_messages_in_channel(instance, chan)
 
-        for chan in channels:
-            print("=" * 80)
-            print(f"{chan.display_name}")
-            print("=" * 80)
-            for msg in chan.messages:
-                if msg.is_toplevel():
-                    print(f"@{msg.sender.display_name}: {msg.body}")
-                    replies = msg.replies.all()
-                    for reply in replies:
-                        print(f"\t@{reply.sender.display_name}: {reply.body}")
+        num_channels = len(channels)
+        if num_channels > 0:
+            print(
+                f'{num_channels} channel{"s" if num_channels>1 else ""} in {matched_team.display_name}'
+            )
+            for chan in channels:
+                # print("=" * 80)
+                print(f"{chan.display_name}")
+                # print("=" * 80)
+                # for msg in chan.messages:
+                #     if msg.is_toplevel():
+                #         print(f"@{msg.sender.display_name}: {msg.body}")
+                #         replies = msg.replies.all()
+                #         for reply in replies:
+                #             print(f"\t@{reply.sender.display_name}: {reply.body}")
+        else:
+            print(f"No channels in {team.display_name}")
