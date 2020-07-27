@@ -22,6 +22,7 @@ class ChatUI(object):
     FOCUSED_INPUT_COLOR = 4
     UNFOCUSED_INPUT_COLOR = 5
     KEYBINDING_COLOR = 6
+    ACTIVE_THREAD_INDICATOR_COLOR = 7
 
     # Chat types
     INVALID = -1 # Uh oh! The ChatUI wasn't set up correctly!
@@ -124,6 +125,7 @@ class ChatUI(object):
             ChatUI.UNFOCUSED_INPUT_COLOR, curses.COLOR_BLACK, curses.COLOR_WHITE
         )
         curses.init_pair(ChatUI.KEYBINDING_COLOR, curses.COLOR_WHITE, -1)
+        curses.init_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR, -1, curses.COLOR_WHITE)
 
         self.prompt = self._get_prompt()
         self.keybinding_labels = "| ^C: exit | ^Enter: send | ^R: Refresh messages |"
@@ -213,12 +215,32 @@ class ChatUI(object):
             handled = self._base_handle_key(k)
 
     def _channel_handle_key(self, k):
-        # TODO: Handle window resizing!
+        handled = False
         if k == "\n":
             self.open_thread(self._toplevel_messages[self._selected_thread_index])
-        # elif k == "KEY_A2": # UP
-        # elif k == "KEY_C2": # DOWN
-
+            handled = True
+        elif k == "KEY_A2": # UP
+            self._selected_thread_index = self._selected_thread_index - 1
+            if self._selected_thread_index < 0:
+                self._selected_thread_index = 0
+            self.draw_messages()
+            self.refresh_display()
+            handled = True
+        elif k == "KEY_C2": # DOWN
+            self._selected_thread_index = self._selected_thread_index + 1
+            if self._selected_thread_index >= len(self._toplevel_messages):
+                self._selected_thread_index = self._toplevel_messages-1
+            self.draw_messages()
+            handled = True
+            self.refresh_display()
+        elif k == "\x0e":  # ^N
+            # start composing a new message
+            pass
+            # self._fetch_new_messages()
+            # self.draw_messages()
+            # self.refresh_display()
+            # self.refresh_display()
+        return handled
 
     def _base_handle_key(self, k):
         # TODO: Handle window resizing!
@@ -310,24 +332,33 @@ class ChatUI(object):
     def _draw_channels_threads(self):
         self._toplevel_messages = []
         curr_row = 0
+        curr_msg_index = 0
         for msg in self._channel.messages:
             if msg.is_toplevel():
                 self._toplevel_messages.append(msg)
+
+                if curr_msg_index == self._selected_thread_index:
+                    self.pad.addstr(curr_row, 0, ' ', curses.color_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR))
+                    self.pad.addstr(curr_row+1, 0, ' ', curses.color_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR))
+
                 username = f"{msg.sender.display_name}: "
                 self.pad.addstr(
-                    curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
+                    curr_row, 1, username, curses.color_pair(ChatUI.USERNAME_COLOR)
                 )
-                self.pad.addstr(curr_row, len(username), f"{msg.body}")
+                self.pad.addstr(curr_row, len(username)+1, f"{msg.body}")
                 curr_row += 1
+
                 replies =  msg.replies.all()
                 num_replies = len(replies)
                 if num_replies == 0:
-                    self.pad.addstr(curr_row, 2, f"(no replies yet)")
+                    self.pad.addstr(curr_row, 3, f"↳(no replies yet)")
                 elif num_replies == 1:
-                    self.pad.addstr(curr_row, 2, f"1 reply")
+                    self.pad.addstr(curr_row, 3, f"↳1 reply")
                 else:
-                    self.pad.addstr(curr_row, 2, f"{num_replies} replies")
-                curr_row += 2
+                    self.pad.addstr(curr_row, 3, f"↳{num_replies} replies")
+                curr_row += 1
+
+                curr_msg_index += 1
 
                 # print(f"@{msg.sender.display_name}: {msg.body}")
                 # replies = msg.replies.all()
