@@ -1,6 +1,6 @@
 from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
-from common.CaughtParserError import CaughtParserError
+from common.Submenu import do_common_interactive_with_args
 from argparse import Namespace
 from apps.onedrive.OnedriveGetCommand import OnedriveGetCommand
 from apps.onedrive.OnedrivePutCommand import OnedrivePutCommand
@@ -8,7 +8,6 @@ from apps.onedrive.OnedriveDeleteCommand import OnedriveDeleteCommand
 from apps.onedrive.OnedriveRenameCommand import OnedriveRenameCommand
 from apps.onedrive.OnedriveMakeDirCommand import OnedriveMakeDirCommand
 from apps.onedrive.OnedriveListCommand import OnedriveListCommand
-
 
 class OnedriveCommand(BaseCommand):
 
@@ -39,31 +38,8 @@ class OnedriveCommand(BaseCommand):
         self._cmd = onedrive_cmd
         return onedrive_cmd
 
+    
+
     def do_command_with_args(self, instance, args):
         # type: (Instance, Namespace) -> ResultAndData
-
-        while True:
-            print("ms onedrive>", end=" ")
-            command = input().split(" ")
-
-            if (len(command) == 1 and (command[0].lower() == "exit" or command[0].lower() == "quit")):
-                print('Returning to main menu...')
-                break
-
-            try:
-                args = self._cmd.parse_args(args=command)
-
-                if args.func:
-                    result = args.func(instance, args)
-                    if result is not None:
-                        if not result.success:
-                            if result.data:
-                                print("\x1b[31m")
-                                print(result.data)
-                                print("\x1b[m")
-                else:
-                    print('Invalid command')
-            except CaughtParserError as e:
-                print(e)
-                
-        return Error()
+        return do_common_interactive_with_args("onedrive", self._cmd, instance, args)
