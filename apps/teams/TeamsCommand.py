@@ -38,5 +38,4 @@ class TeamsCommand(BaseCommand):
 
     def do_command_with_args(self, instance, args):
         # type: (Instance, Namespace) -> ResultAndData
-
         return do_common_interactive_with_args("teams", self._cmd, instance, args)

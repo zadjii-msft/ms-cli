@@ -14,6 +14,7 @@ from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
 from common.Instance import Instance
 from common.CaughtParserError import CaughtParserError
+import common.ParserState
 from apps.teams.TeamsCommand import TeamsCommand
 from apps.teams.LogoutCommand import LogoutCommand
 from apps.onedrive.OnedriveCommand import OnedriveCommand
@@ -48,8 +49,6 @@ class MigrateCommand(BaseCommand):
         # TODO: Does this even work? I have no idea
         return Error()
 
-doExitOnError = True
-
 # See https://docs.python.org/3/library/argparse.html#exiting-methods, used to override exit behavior if we want.
 class ErrorCatchingArgumentParser(argparse.ArgumentParser):
     def exit(self, status=0, message=None):
@@ -58,8 +57,7 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
         _sys.exit(status)
 
     def error(self, message):
-        global doExitOnError
-        if (doExitOnError):
+        if (common.ParserState.doExitOnError):
             self.print_usage(_sys.stderr)
             args = {'prog': self.prog, 'message': message}
             self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
@@ -169,8 +167,7 @@ def ms_main(argv):
     args = parser.parse_args()
 
     if args.app == None:
-        global doExitOnError
-        doExitOnError = False
+        common.ParserState.doExitOnError = False
         while True:
             print("ms>", end=" ")
             command = input().split(" ")
