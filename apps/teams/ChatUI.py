@@ -25,11 +25,11 @@ class ChatUI(object):
     ACTIVE_THREAD_INDICATOR_COLOR = 7
 
     # Chat types
-    INVALID = -1 # Uh oh! The ChatUI wasn't set up correctly!
-    DIRECT_MESSAGE = 0 # A direct message with one other user
-    GROUP_THREAD = 1 # A chat thread with many other users. Unimplemented
-    CHANNEL_ROOT = 2 # A list of the threads in a channel in a team
-    CHANNEL_MESSAGE = 3 # A single thread within a channel in a team
+    INVALID = -1  # Uh oh! The ChatUI wasn't set up correctly!
+    DIRECT_MESSAGE = 0  # A direct message with one other user
+    GROUP_THREAD = 1  # A chat thread with many other users. Unimplemented
+    CHANNEL_ROOT = 2  # A list of the threads in a channel in a team
+    CHANNEL_MESSAGE = 3  # A single thread within a channel in a team
 
     @staticmethod
     def create_for_direct_message(instance, thread, other_user):
@@ -111,7 +111,6 @@ class ChatUI(object):
         self.refresh_display()
         self.refresh_display()
 
-
     def setup_curses(self):
         curses.use_default_colors()
         # Clear screen
@@ -138,9 +137,7 @@ class ChatUI(object):
 
         self.title_height = 1
         raw_title = self._get_raw_title()
-        self.title = raw_title + (
-            " " * (self.window_width - len(raw_title))
-        )
+        self.title = raw_title + (" " * (self.window_width - len(raw_title)))
 
         self.message_box_height = 2
         self.message_box_width = self.window_width - len(self.prompt) - 2
@@ -167,7 +164,6 @@ class ChatUI(object):
 
     def draw_prompt(self):
         self.stdscr.addstr(self.msg_box_origin_row, 0, self.prompt)
-
 
     @staticmethod
     def main(stdscr, self):
@@ -199,8 +195,6 @@ class ChatUI(object):
             k = self.stdscr.getkey()
             self._handle_key(k)
 
-
-
     def _handle_key(self, k):
         handled = False
         if self._mode == ChatUI.DIRECT_MESSAGE:
@@ -219,17 +213,17 @@ class ChatUI(object):
         if k == "\n":
             self.open_thread(self._toplevel_messages[self._selected_thread_index])
             handled = True
-        elif k == "KEY_A2": # UP
+        elif k == "KEY_A2":  # UP
             self._selected_thread_index = self._selected_thread_index - 1
             if self._selected_thread_index < 0:
                 self._selected_thread_index = 0
             self.draw_messages()
             self.refresh_display()
             handled = True
-        elif k == "KEY_C2": # DOWN
+        elif k == "KEY_C2":  # DOWN
             self._selected_thread_index = self._selected_thread_index + 1
             if self._selected_thread_index >= len(self._toplevel_messages):
-                self._selected_thread_index = self._toplevel_messages-1
+                self._selected_thread_index = self._toplevel_messages - 1
             self.draw_messages()
             handled = True
             self.refresh_display()
@@ -274,7 +268,6 @@ class ChatUI(object):
             self.editwin.addstr(0, 0, self.input_line)
             self.refresh_display()
             self.refresh_display()
-
 
     def start(self):
         curses.wrapper(ChatUI.main, self)
@@ -338,24 +331,39 @@ class ChatUI(object):
                 self._toplevel_messages.append(msg)
 
                 if curr_msg_index == self._selected_thread_index:
-                    self.pad.addstr(curr_row, 0, ' ', curses.color_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR))
-                    self.pad.addstr(curr_row+1, 0, ' ', curses.color_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR))
+                    self.pad.addstr(
+                        curr_row,
+                        0,
+                        " ",
+                        curses.color_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR),
+                    )
+                    self.pad.addstr(
+                        curr_row + 1,
+                        0,
+                        " ",
+                        curses.color_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR),
+                    )
 
                 username = f"{msg.sender.display_name}: "
                 self.pad.addstr(
                     curr_row, 1, username, curses.color_pair(ChatUI.USERNAME_COLOR)
                 )
-                self.pad.addstr(curr_row, len(username)+1, f"{msg.body}")
+                self.pad.addstr(curr_row, len(username) + 1, f"{msg.body}")
                 curr_row += 1
 
-                replies =  msg.replies.all()
+                replies = msg.replies.all()
                 num_replies = len(replies)
+                active_attr = curses.color_pair(0) + (
+                    curses.A_UNDERLINE
+                    if curr_msg_index == self._selected_thread_index
+                    else 0
+                )
                 if num_replies == 0:
-                    self.pad.addstr(curr_row, 3, f"↳(no replies yet)")
+                    self.pad.addstr(curr_row, 3, f"↳(no replies yet)", active_attr)
                 elif num_replies == 1:
-                    self.pad.addstr(curr_row, 3, f"↳1 reply")
+                    self.pad.addstr(curr_row, 3, f"↳1 reply", active_attr)
                 else:
-                    self.pad.addstr(curr_row, 3, f"↳{num_replies} replies")
+                    self.pad.addstr(curr_row, 3, f"↳{num_replies} replies", active_attr)
                 curr_row += 1
 
                 curr_msg_index += 1
@@ -372,9 +380,7 @@ class ChatUI(object):
         msg = self._root_message
 
         username = f"{msg.sender.display_name}: "
-        self.pad.addstr(
-            curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
-        )
+        self.pad.addstr(curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR))
         self.pad.addstr(curr_row, len(username), f"{msg.body}")
         curr_row += 1
 
@@ -422,19 +428,21 @@ class ChatUI(object):
         elif self._mode == ChatUI.GROUP_THREAD:
             return f"chatting with group..."
         elif self._mode == ChatUI.CHANNEL_ROOT:
-            return f'all threads in {self._team.display_name}/{self._channel.display_name}'
+            return (
+                f"all threads in {self._team.display_name}/{self._channel.display_name}"
+            )
         elif self._mode == ChatUI.CHANNEL_MESSAGE:
-            return f'chatting in {self._team.display_name}/{self._channel.display_name}'
+            return f"chatting in {self._team.display_name}/{self._channel.display_name}"
 
     def _get_prompt(self):
         if self._mode == ChatUI.DIRECT_MESSAGE:
-            return 'Enter a message:'
+            return "Enter a message:"
         elif self._mode == ChatUI.GROUP_THREAD:
-            return 'Enter a message:'
+            return "Enter a message:"
         elif self._mode == ChatUI.CHANNEL_ROOT:
-            return 'Start a thread: '
+            return "Start a thread: "
         elif self._mode == ChatUI.CHANNEL_MESSAGE:
-            return 'Enter a message:'
+            return "Enter a message:"
 
     def _fetch_new_messages(self):
         if self._mode == ChatUI.DIRECT_MESSAGE:
@@ -442,7 +450,6 @@ class ChatUI(object):
         elif self._mode == ChatUI.GROUP_THREAD:
             TeamsCacheCommand.cache_all_messages(self.instance, quiet=True)
         elif self._mode == ChatUI.CHANNEL_ROOT:
-            pass # TODO
+            pass  # TODO
         elif self._mode == ChatUI.CHANNEL_MESSAGE:
-            pass # TODO
-
+            pass  # TODO

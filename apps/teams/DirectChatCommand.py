@@ -98,7 +98,9 @@ class DirectChatCommand(BaseCommand):
         if target_thread is None:
             return Error(f"Could not find a thread for user:{username}")
 
-        chat_ui = ChatUI.create_for_channel_thread(instance, target_thread, matched_user)
+        chat_ui = ChatUI.create_for_channel_thread(
+            instance, target_thread, matched_user
+        )
         chat_ui.start()
 
         return Success()
