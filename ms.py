@@ -4,11 +4,16 @@ import os
 import json
 import datetime
 
+import sys as _sys
+
+from gettext import gettext as _, ngettext
+
 from msgraph import helpers
 
 from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
 from common.Instance import Instance
+from common.CaughtParserError import CaughtParserError
 from apps.teams.TeamsCommand import TeamsCommand
 from apps.teams.LogoutCommand import LogoutCommand
 from apps.onedrive.OnedriveCommand import OnedriveCommand
@@ -43,11 +48,47 @@ class MigrateCommand(BaseCommand):
         # TODO: Does this even work? I have no idea
         return Error()
 
+doExitOnError = True
+
+# See https://docs.python.org/3/library/argparse.html#exiting-methods, used to override exit behavior if we want.
+class ErrorCatchingArgumentParser(argparse.ArgumentParser):
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+        _sys.exit(status)
+
+    def error(self, message):
+        global doExitOnError
+        if (doExitOnError):
+            self.print_usage(_sys.stderr)
+            args = {'prog': self.prog, 'message': message}
+            self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+        else:
+            raise CaughtParserError(message=message)
+
+    def format_apps_help(self):
+        formatter = self._get_formatter()
+
+        # positionals, optionals and user-defined groups
+        for action_group in self._action_groups:
+            if action_group.title == 'apps':
+                formatter.start_section(action_group.title)
+                formatter.add_text(action_group.description)
+                formatter.add_arguments(action_group._group_actions)
+                formatter.end_section()
+
+        # determine help from format above
+        return formatter.format_help()
+
+    def print_apps_help(self, file=None):
+        if file is None:
+            file = _sys.stdout
+        self._print_message(self.format_apps_help(), file)
 
 def build_arg_parser():
-    root_parser = argparse.ArgumentParser(add_help=False)
+    root_parser = ErrorCatchingArgumentParser(add_help=False)
 
-    apps_parser = argparse.ArgumentParser(parents=[root_parser])
+    apps_parser = ErrorCatchingArgumentParser(parents=[root_parser])
 
     # NOTE: For each subparser you add, the `dest` must be unique. If two
     # subparsers in the same tree of parsers share the same dest, unexpected
@@ -120,7 +161,6 @@ def dostuff2(instance):
     print(json.dumps(messages, indent=2))
     exit()
 
-
 def ms_main(argv):
 
     enable_vt_support()
@@ -129,7 +169,33 @@ def ms_main(argv):
     args = parser.parse_args()
 
     if args.app == None:
-        # TODO: boot straight to the ms-cli
+        global doExitOnError
+        doExitOnError = False
+        while True:
+            print("ms>", end=" ")
+            command = input().split(" ")
+
+            if (len(command) == 1 and (command[0].lower() == "exit" or command[0].lower() == "quit")):
+                print('Goodbye!')
+                sys.exit(0)
+
+            try:
+                args = parser.parse_args(args=command)
+
+                if args.func:
+                    instance = Instance()
+                    result = args.func(instance, args)
+                    if result is not None:
+                        if not result.success:
+                            if result.data:
+                                print("\x1b[31m")
+                                print(result.data)
+                                print("\x1b[m")
+                else:
+                    print('Invalid command')
+            except CaughtParserError as e:
+                print(e)
+
         return
 
     if args.func:
