@@ -8,9 +8,44 @@ from argparse import Namespace
 from sqlalchemy import func, distinct
 from apps.teams.TeamsCacheCommand import TeamsCacheCommand
 import curses
+import os
 from curses.textpad import Textbox, rectangle
 from time import sleep
 from msgraph import helpers
+
+def get_buffer_size():
+
+    import ctypes
+    class CONSOLE_SCREEN_BUFFER_INFO(ctypes.Structure):
+        _fields_ = [
+            ('dwSize', ctypes.wintypes._COORD),
+            ('dwCursorPosition', ctypes.wintypes._COORD),
+            ('wAttributes', ctypes.c_ushort),
+            ('srWindow', ctypes.wintypes._SMALL_RECT),
+            ('dwMaximumWindowSize', ctypes.wintypes._COORD)
+        ]
+
+    ctypes.windll.kernel32.GetStdHandle.restype = ctypes.wintypes.HANDLE
+    hstd = ctypes.windll.kernel32.GetStdHandle(-11) # STD_OUTPUT_HANDLE = -11
+    csbi = CONSOLE_SCREEN_BUFFER_INFO()
+    # print(csbi.__dict__)
+    # print(csbi.srWindow)
+    # print(csbi.srWindow.Top)
+    # print(csbi.srWindow.Right)
+    ret = ctypes.windll.kernel32.GetConsoleScreenBufferInfo(
+        hstd,
+        ctypes.byref(csbi)
+    )
+    if ret == False:
+        return Error('Failed to retrieve console buffer size')
+    width = csbi.srWindow.Right - csbi.srWindow.Left
+    height = csbi.srWindow.Bottom - csbi.srWindow.Top
+    return Success( (width, height) )
+    # print(csbi.__dict__)
+    # print(csbi.srWindow)
+    # print(csbi.srWindow.Top)
+    # print(csbi.srWindow.Right)
+    return ResultAndData(ret, csbi)
 
 
 class ChatUI(object):
@@ -106,6 +141,9 @@ class ChatUI(object):
         self._root_message = chat_message
         self._toplevel_messages = []
         self._selected_thread_index = None
+        self._redraw_everything()
+
+    def _redraw_everything(self):
         self.setup_curses()
         self.draw_titlebar()
         self.draw_keybindings()
@@ -117,10 +155,19 @@ class ChatUI(object):
 
     def setup_curses(self):
         curses.use_default_colors()
-        # Clear screen
-        # self.stdscr.clear()
 
-        curses.init_pair(ChatUI.TITLE_COLOR, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
+        ########################################################################
+        # Setup colors to use with curses
+        ########################################################################
+        # See: https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/design/components/color
+        # The official Teams purple is #6264A7
+        # We've got a few options for 256-palette colors:
+        # * curses.COLOR_MAGENTA: this is the 16-color palette magenta.
+        # * 093: #8700ff
+        # * 099: #875fff
+        # * 056: #5f00d7
+        # * 062: #5f5fd7 - this is a little blue-er than the above one, but looks closer to my eyes
+        curses.init_pair(ChatUI.TITLE_COLOR, curses.COLOR_WHITE, 62)
         curses.init_pair(ChatUI.USERNAME_COLOR, curses.COLOR_BLACK, -1)
         curses.init_pair(ChatUI.DATETIME_COLOR, curses.COLOR_BLACK, -1)
         curses.init_pair(ChatUI.FOCUSED_INPUT_COLOR, curses.COLOR_BLACK, curses.COLOR_WHITE)
@@ -129,15 +176,35 @@ class ChatUI(object):
         )
         curses.init_pair(ChatUI.KEYBINDING_COLOR, curses.COLOR_WHITE, -1)
         curses.init_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR, -1, curses.COLOR_WHITE)
+        ########################################################################
 
         self.prompt = self._get_prompt()
-        # self.keybinding_labels = "| ^C: exit | ^Enter: send | ^R: Refresh messages |"
         self.update_sizes()
 
     def update_sizes(self):
 
-        self.window_width = curses.COLS - 1
-        self.window_height = curses.LINES - 1
+        # self.window_width = curses.COLS - 1
+        # self.window_height = curses.LINES - 1
+        # print(' --- update_sizes --- ')
+        # print(f'current window:{self.window_width}, {self.window_height}')
+        # (c, l) = os.get_terminal_size()
+        # print(f'get_terminal_size:{c}, {l}')
+        rd = get_buffer_size()
+        if rd.success:
+            (w, h) = rd.data
+            curses.update_lines_cols()
+            # print(f'curses:{curses.COLS}, {curses.LINES}')
+            # print(f'get_terminal_size:{os.get_terminal_size()}')
+            # print(f'get_buffer_size:{w}, {h}')
+
+            # OKAY. Definitively, these guys are the right ones.
+            #
+            # GetConsoleScreenBufferInfo will return the size of the _main_
+            # buffer, which _isn't_  resized till the buffer exits....
+            self.window_width = curses.COLS - 1
+            self.window_height = curses.LINES - 1
+        # print(' --- ------------ --- ')
+
 
         self.title_height = 1
         raw_title = self._get_raw_title()
@@ -237,6 +304,14 @@ class ChatUI(object):
 
     def _handle_key(self, k):
         handled = False
+
+        # Handle window resizing. Do this first
+        if k == 'KEY_RESIZE':
+            # curses.update_lines_cols()
+            self.update_sizes()
+            self._redraw_everything()
+            return True
+
         if self._mode == ChatUI.DIRECT_MESSAGE:
             pass
         elif self._mode == ChatUI.GROUP_THREAD:
@@ -253,7 +328,7 @@ class ChatUI(object):
         if k == "\n":
             self.open_thread(self._toplevel_messages[self._selected_thread_index])
             handled = True
-        elif k == "KEY_A2":  # UP
+        elif k == "KEY_A2" or k == 'KEY_UP':  # UP
             if self._composing_new_thread:
                 pass
             else:
@@ -263,7 +338,7 @@ class ChatUI(object):
                 self.draw_messages()
                 self.refresh_display()
                 handled = True
-        elif k == "KEY_C2":  # DOWN
+        elif k == "KEY_C2" or k == 'KEY_DOWN':  # DOWN
             if self._composing_new_thread:
                 pass
             else:
@@ -294,7 +369,6 @@ class ChatUI(object):
         return handled
 
     def _base_handle_key(self, k):
-        # TODO: Handle window resizing!
         if k == "\x03":
             self.exit_requested = True
         elif k == "CTL_ENTER":  # normal enter is '\n'
