@@ -15,6 +15,100 @@ from time import sleep
 from msgraph import helpers
 
 
+class EditBox(object):
+    def __init__(self, width, contents=""):
+        self._width = width
+        self._buffer = contents
+        self._caret_position = 0
+        self._rows = None
+
+    def resize(self, new_width):
+        self._width = new_width
+        self._rows = None
+
+    def is_empty(self):
+        return self._buffer is None or self._buffer == ""
+
+    def get_contents(self):
+        return self._buffer
+
+    def clear(self):
+        self._buffer = ""
+        self._caret_position = 0
+        self._rows = None
+
+    def _at_buffer_end(self):
+        return self._caret_position == len(self._buffer)
+
+    def insert_character(self, ch):
+        if self._at_buffer_end():
+            self._buffer = self._buffer + ch
+        else:
+            self._buffer = (
+                self._buffer[: self._caret_position]
+                + ch
+                + self._buffer[self._caret_position :]
+            )
+        self._caret_position += 1
+        self._rows = None
+
+    def backspace_character(self):
+        if self._caret_position == 0:
+            return
+        elif self._at_buffer_end():
+            self._buffer = self._buffer[:-1]
+        else:
+            self._buffer = (
+                self._buffer[: self._caret_position - 1]
+                + self._buffer[self._caret_position :]
+            )
+        self._caret_position -= 1
+        self._clamp_caret()
+        self._rows = None
+
+    def delete_character(self):
+        if self._at_buffer_end():
+            return
+        else:
+            self._buffer = (
+                self._buffer[: self._caret_position]
+                + self._buffer[self._caret_position + 1 :]
+            )
+        self._clamp_caret()
+        self._rows = None
+
+    def move_cursor_left(self):
+        self._caret_position -= 1
+        self._clamp_caret()
+
+    def move_cursor_right(self):
+        self._caret_position += 1
+        self._clamp_caret()
+
+    def _clamp_caret(self):
+        if self._caret_position < 0:
+            self._caret_position = 0
+        if self._caret_position >= len(self._buffer):
+            self._caret_position = len(self._buffer)
+
+    def get_rows(self):
+        if self._rows is None:
+            self._rows = [
+                self._buffer[i : i + self._width]
+                for i in range(0, len(self._buffer), self._width)
+            ]
+        return self._rows
+
+    def get_height(self):
+        rows = self.get_rows()
+        return len(rows)
+
+    def get_caret_xy(self):
+        x = int(self._caret_position % self._width)
+        y = int(self._caret_position / self._width)
+        return (x, y)
+
+
 class ChatUI(object):
 
     # UI Element colors. Use with curses.color_pair()
@@ -81,7 +175,7 @@ class ChatUI(object):
         self.editwin = None
         self.pad = None
 
-        self.input_line = ""
+        self._edit_box = EditBox(80)
         self._composing_new_thread = False
 
         self.window_width = -1
@@ -167,6 +261,7 @@ class ChatUI(object):
         self.message_box_width = self.window_width - len(self.prompt) - 2
         self.msg_box_origin_row = self.window_height - self.message_box_height
         self.msg_box_origin_col = len(self.prompt) + 1
+        self._edit_box.resize(self.message_box_width)
 
         self.keybinding_labels_height = 1
         self.keybinding_labels_width = self.window_width
@@ -218,7 +313,9 @@ class ChatUI(object):
         self.editwin.bkgd(" ", attr)
 
         self.editwin.clear()
-        self.editwin.addstr(0, 0, self.input_line)
+
+        for row_index, row_text in enumerate(self._edit_box.get_rows()):
+            self.editwin.addstr(row_index, 0, row_text)
 
     @staticmethod
     def main(stdscr, self):
@@ -317,11 +414,11 @@ class ChatUI(object):
         if k == "\x03":
             self.exit_requested = True
         elif k == "CTL_ENTER":  # normal enter is '\n'
-            if self.input_line == None or self.input_line == "":
+            if self._edit_box.is_empty():
                 pass
             else:
-                self.send_message(self.input_line)
-            self.input_line = ""
+                self.send_message(self._edit_box.get_contents())
+            self._edit_box.clear()
             self.draw_edit_box()
             self.draw_messages()
             self.refresh_display()
@@ -333,13 +430,33 @@ class ChatUI(object):
             self.draw_messages()
             self.refresh_display()
             self.refresh_display()
+        elif k == "KEY_B1" or k == "KEY_LEFT":
+            self._edit_box.move_cursor_left()
+            self.draw_edit_box()
+            self.refresh_display()
+
+        elif k == "KEY_B3" or k == "KEY_RIGHT":
+            self._edit_box.move_cursor_right()
+            self.draw_edit_box()
+            self.refresh_display()
+
+        elif k == "PADSTOP":  # Delete? I suppose
+            if self._mode == ChatUI.CHANNEL_ROOT and not self._composing_new_thread:
+                # If we're in the channel root and we're not in compose mode,
+                # ignore the character
+                pass
+            else:
+                self._edit_box.delete_character()
+                self.draw_edit_box()
+                self.refresh_display()
+                self.refresh_display()
         elif k == "\x08":
             if self._mode == ChatUI.CHANNEL_ROOT and not self._composing_new_thread:
                 # If we're in the channel root and we're not in compose mode,
                 # ignore the character
                 pass
             else:
-                self.input_line = self.input_line[:-1]
+                self._edit_box.backspace_character()
                 self.draw_edit_box()
                 self.refresh_display()
                 self.refresh_display()
@@ -349,7 +466,7 @@ class ChatUI(object):
                 # ignore the character
                 pass
             else:
-                self.input_line += k
+                self._edit_box.insert_character(k)
                 self.draw_edit_box()
                 self.refresh_display()
                 self.refresh_display()
@@ -360,8 +477,9 @@ class ChatUI(object):
         # return self._selected_chat_message
 
     def refresh_display(self):
-        new_cursor_row = self.msg_box_origin_row + 0
-        new_cursor_col = self.msg_box_origin_col + len(self.input_line)
+        caret_x, caret_y = self._edit_box.get_caret_xy()
+        new_cursor_row = self.msg_box_origin_row + caret_y
+        new_cursor_col = self.msg_box_origin_col + caret_x
         # msg_box_origin_col
         # editwin.move(0, len(input_line))
         self.stdscr.move(new_cursor_row, new_cursor_col)
