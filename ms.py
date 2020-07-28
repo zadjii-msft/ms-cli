@@ -69,12 +69,12 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
         formatter = self._get_formatter()
 
         # positionals, optionals and user-defined groups
-        for action_group in self._action_groups:
-            if action_group.title == "apps":
-                formatter.start_section(action_group.title)
-                formatter.add_text(action_group.description)
-                formatter.add_arguments(action_group._group_actions)
-                formatter.end_section()
+        for action_group in self._action_groups[2:]:
+            # if action_group.title == "apps":
+            formatter.start_section(action_group.title)
+            formatter.add_text(action_group.description)
+            formatter.add_arguments(action_group._group_actions)
+            formatter.end_section()
 
         # determine help from format above
         return formatter.format_help()
@@ -166,6 +166,7 @@ def ms_main(argv):
 
     enable_vt_support()
 
+
     parser = build_arg_parser()
     args = parser.parse_args()
 
@@ -175,11 +176,16 @@ def ms_main(argv):
             print("ms>", end=" ")
             command = input().split(" ")
 
-            if len(command) == 1 and (
-                command[0].lower() == "exit" or command[0].lower() == "quit"
-            ):
-                print("Goodbye!")
-                sys.exit(0)
+            if len(command) == 1:
+                c = command[0].lower()
+
+                if c == "help":
+                    parser.print_apps_help()
+                    continue
+
+                if c == "exit" or c == "quit":
+                    print("Goodbye!")
+                    sys.exit(0)
 
             try:
                 args = parser.parse_args(args=command)

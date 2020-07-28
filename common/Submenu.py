@@ -13,11 +13,15 @@ def do_common_interactive_with_args(modename, parser, instance, args):
         if len(command) == 1:
             c = command[0].lower()
 
-            if command[0].lower() == "exit" or command[0].lower() == "quit":
+            if c == "help":
+                parser.print_apps_help()
+                continue
+
+            if c == "exit" or c == "quit":
                 print("Goodbye")
                 sys.exit(0)
 
-            if command[0].lower() == "up" or command[0].lower() == "back":
+            if c == "up" or c == "back":
                 print("Returning to main menu...")
                 break
 
