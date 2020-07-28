@@ -29,6 +29,9 @@ class TeamsTeamCommand(BaseCommand):
         db = instance.get_db()
         graph = instance.get_graph_session()
 
+        if not quiet:
+            print(f"fetching channels for {team.display_name}...")
+
         channels = team.get_channels_json(graph)
         for channel_json in channels["value"]:
             c = get_or_create_channel_model(db, channel_json)
@@ -42,6 +45,9 @@ class TeamsTeamCommand(BaseCommand):
         db = instance.get_db()
         graph = instance.get_graph_session()
         team = channel.team
+
+        if not quiet:
+            print(f"fetching threads for {team.display_name}/{channel.display_name}...")
 
         response = helpers.list_channel_messages(
             graph, team_id=team.graph_id, channel_id=channel.graph_id
