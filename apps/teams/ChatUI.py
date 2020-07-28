@@ -117,6 +117,9 @@ class MessageTextBox(object):
 
     def _recalculate_rows(self):
         self._rows = []
+        # TODO: Right now this splits based on window width, _then_ newlines.
+        # That's stupid. It should be nelwines first, then split the remaining
+        # lines based on width.
         for i in range(0, len(self._msg.body), self._message_body_width):
             row = self._msg.body[i : i + self._message_body_width]
             lines = row.split("\n")
@@ -318,11 +321,22 @@ class ChatUI(object):
         self.keybinding_labels_origin_row = -1
         self.keybinding_labels_origin_col = -1
 
+    def open_channel(self, channel):
+        self._mode = ChatUI.CHANNEL_ROOT
+        self._team = channel.team
+        self._root_message = None
+        self._toplevel_messages = []
+        self._channel = channel
+        self._selected_thread_index = 0
+        self._offset_from_bottom = 0
+        self._redraw_everything()
+
     def open_thread(self, chat_message):
         self._mode = ChatUI.CHANNEL_MESSAGE
         self._root_message = chat_message
         self._toplevel_messages = []
         self._selected_thread_index = None
+        self._offset_from_bottom = 0
         self._redraw_everything()
 
     def _redraw_everything(self):
@@ -491,7 +505,9 @@ class ChatUI(object):
         elif self._mode == ChatUI.CHANNEL_ROOT:
             handled = self._channel_handle_key(k)
         elif self._mode == ChatUI.CHANNEL_MESSAGE:
-            pass
+            if k == "\x1a":
+                self.open_channel(self._channel)
+                handled = True
         if not handled:
             handled = self._base_handle_key(k)
 
@@ -732,9 +748,9 @@ class ChatUI(object):
         if total_message_height < pad_view_height or (self._offset_from_bottom < 0):
             self._offset_from_bottom = 0
         elif self._offset_from_bottom >= len(message_boxes):
-            self._offset_from_bottom = len(message_boxes)-1
+            self._offset_from_bottom = len(message_boxes) - 1
 
-        for mb in message_boxes[self._offset_from_bottom:]:
+        for mb in message_boxes[self._offset_from_bottom :]:
             h = mb.get_height()
             mb.draw(self.pad, current_bottom - h)
             current_bottom -= h
@@ -750,6 +766,9 @@ class ChatUI(object):
             self._create_new_thread(message)
         elif self._mode == ChatUI.CHANNEL_MESSAGE:
             self._reply_to_thread(message)
+
+        # Regardless of the mode, jump back down to the bottom
+        self._offset_from_bottom = 0
 
     def _send_direct_message(self, message):
         db = self.instance.get_db()
@@ -832,3 +851,5 @@ class ChatUI(object):
             TeamsTeamCommand.cache_replies_to_message(
                 self.instance, self._root_message, quiet=True
             )
+        # Regardless of the mode, jump back down to the bottom
+        self._offset_from_bottom = 0
