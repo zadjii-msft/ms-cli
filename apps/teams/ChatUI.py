@@ -74,9 +74,44 @@ class MessageTextBox(object):
         # message_body_width = self._width - start_col
 
         message_rows = self._get_rows()
-
+        msg_height = self.get_height()
         for row_index, row_text in enumerate(message_rows):
             pad.addstr(initial_row + row_index, self._start_col, row_text)
+
+        if self._is_channel_message:
+            if self._is_selected:
+                for i in range(0, msg_height):
+                    pad.addstr(
+                        initial_row + i,
+                        0,
+                        " ",
+                        curses.color_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR),
+                    )
+            num_replies = len(self._msg.replies.all())
+            active_attr = curses.color_pair(0) + (
+                curses.A_UNDERLINE if self._is_selected else 0
+            )
+            if num_replies == 0:
+                pad.addstr(
+                    initial_row + msg_height - 1,
+                    self._indent + 2,
+                    f"↳ (no replies yet)",
+                    active_attr,
+                )
+            elif num_replies == 1:
+                pad.addstr(
+                    initial_row + msg_height - 1,
+                    self._indent + 2,
+                    f"↳ 1 reply",
+                    active_attr,
+                )
+            else:
+                pad.addstr(
+                    initial_row + msg_height - 1,
+                    self._indent + 2,
+                    f"↳ {num_replies} replies",
+                    active_attr,
+                )
 
     def resize(self, width):
         self._width = width
@@ -100,7 +135,7 @@ class MessageTextBox(object):
         # ]
 
     def get_height(self):
-        return len(self._get_rows())
+        return len(self._get_rows()) + (1 if self._is_channel_message else 0)
 
 
 class EditBox(object):
@@ -483,7 +518,7 @@ class ChatUI(object):
             else:
                 self.open_thread(self._toplevel_messages[self._selected_thread_index])
                 handled = True
-        elif k == "KEY_A2" or k == "KEY_UP":  # UP
+        elif k == "KEY_C2" or k == "KEY_DOWN":  # DOWN
             if self._composing_new_thread:
                 pass
             else:
@@ -493,7 +528,7 @@ class ChatUI(object):
                 self.draw_messages()
                 self.refresh_display()
                 handled = True
-        elif k == "KEY_C2" or k == "KEY_DOWN":  # DOWN
+        elif k == "KEY_A2" or k == "KEY_UP":  # UP
             if self._composing_new_thread:
                 pass
             else:
@@ -690,52 +725,75 @@ class ChatUI(object):
         self._toplevel_messages = []
         curr_row = 0
         curr_msg_index = 0
-        for msg in self._channel.messages:
+
+        newest_messages = self._channel.messages.order_by(
+            ChatMessage.created_date_time.desc()
+        ).all()
+
+        for msg in newest_messages:
             if msg.is_toplevel():
                 self._toplevel_messages.append(msg)
 
-        for msg in self._toplevel_messages:
-
-            msg_height = self._draw_single_message(msg, 1, curr_row)
-
-            if curr_msg_index == self._selected_thread_index:
-                for i in range(0, msg_height + 1):
-                    self.pad.addstr(
-                        curr_row + i,
-                        0,
-                        " ",
-                        curses.color_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR),
-                    )
-
-            # username = f"{msg.sender.display_name}: "
-            # self.pad.addstr(
-            #     curr_row, 1, username, curses.color_pair(ChatUI.USERNAME_COLOR)
-            # )
-            # self.pad.addstr(curr_row, len(username) + 1, f"{msg.body}")
-            # curr_row += 1
-            curr_row += msg_height
-
-            replies = msg.replies.all()
-            num_replies = len(replies)
-            active_attr = curses.color_pair(0) + (
-                curses.A_UNDERLINE
-                if curr_msg_index == self._selected_thread_index
-                else 0
+        message_boxes = [
+            MessageTextBox.create_thread_root_message(
+                msg, i == self._selected_thread_index, self.window_width
             )
-            if num_replies == 0:
-                self.pad.addstr(curr_row, 3, f"↳ (no replies yet)", active_attr)
-            elif num_replies == 1:
-                self.pad.addstr(curr_row, 3, f"↳ 1 reply", active_attr)
-            else:
-                self.pad.addstr(curr_row, 3, f"↳ {num_replies} replies", active_attr)
-            curr_row += 1
+            for i, msg in enumerate(self._toplevel_messages)
+        ]
+        current_bottom = self._pad_height
+        pad_view_height = self.chat_history_height
+        pad_view_top = self._pad_height - pad_view_height
 
-            curr_msg_index += 1
+        for mb in message_boxes:
+            h = mb.get_height()
+            # print(f"cb, h:{current_bottom}, {h}")
+            mb.draw(self.pad, current_bottom - h)
+            current_bottom -= h
+            if current_bottom < pad_view_top:
+                break
 
-            # print(f"@{msg.sender.display_name}: {msg.body}")
-            # replies = msg.replies.all()
-            # for reply in replies:
-            #     print(f"\t@{reply.sender.display_name}: {reply.body}")
+        # for msg in self._toplevel_messages:
+
+        #     msg_height = self._draw_single_message(msg, 1, curr_row)
+
+        #     if curr_msg_index == self._selected_thread_index:
+        #         for i in range(0, msg_height + 1):
+        #             self.pad.addstr(
+        #                 curr_row + i,
+        #                 0,
+        #                 " ",
+        #                 curses.color_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR),
+        #             )
+
+        #     # username = f"{msg.sender.display_name}: "
+        #     # self.pad.addstr(
+        #     #     curr_row, 1, username, curses.color_pair(ChatUI.USERNAME_COLOR)
+        #     # )
+        #     # self.pad.addstr(curr_row, len(username) + 1, f"{msg.body}")
+        #     # curr_row += 1
+        #     curr_row += msg_height
+
+        #     replies = msg.replies.all()
+        #     num_replies = len(replies)
+        #     active_attr = curses.color_pair(0) + (
+        #         curses.A_UNDERLINE
+        #         if curr_msg_index == self._selected_thread_index
+        #         else 0
+        #     )
+        #     if num_replies == 0:
+        #         self.pad.addstr(curr_row, 3, f"↳ (no replies yet)", active_attr)
+        #     elif num_replies == 1:
+        #         self.pad.addstr(curr_row, 3, f"↳ 1 reply", active_attr)
+        #     else:
+        #         self.pad.addstr(curr_row, 3, f"↳ {num_replies} replies", active_attr)
+        #     curr_row += 1
+
+        #     curr_msg_index += 1
+
+        #     # print(f"@{msg.sender.display_name}: {msg.body}")
+        #     # replies = msg.replies.all()
+        #     # for reply in replies:
+        #     #     print(f"\t@{reply.sender.display_name}: {reply.body}")
 
     def _draw_thread_message(self):
         curr_row = 0
