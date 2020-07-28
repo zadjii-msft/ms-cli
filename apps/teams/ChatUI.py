@@ -237,7 +237,10 @@ class ChatUI(object):
         # * 056: #5f00d7
         # * 062: #5f5fd7 - this is a little blue-er than the above one, but looks closer to my eyes
         curses.init_pair(ChatUI.TITLE_COLOR, curses.COLOR_WHITE, 62)
-        curses.init_pair(ChatUI.USERNAME_COLOR, curses.COLOR_BLACK, -1)
+
+        # Note that if you try to use a 256 color FG, you _cannot_ use a Default BG.
+        curses.init_pair(ChatUI.USERNAME_COLOR, curses.COLOR_WHITE, -1)
+        # curses.init_pair(ChatUI.USERNAME_COLOR, curses.COLOR_BLACK, -1)
         curses.init_pair(ChatUI.DATETIME_COLOR, curses.COLOR_BLACK, -1)
         curses.init_pair(
             ChatUI.FOCUSED_INPUT_COLOR, curses.COLOR_BLACK, curses.COLOR_WHITE
@@ -378,8 +381,11 @@ class ChatUI(object):
     def _channel_handle_key(self, k):
         handled = False
         if k == "\n":
-            self.open_thread(self._toplevel_messages[self._selected_thread_index])
-            handled = True
+            if self._composing_new_thread:
+                pass
+            else:
+                self.open_thread(self._toplevel_messages[self._selected_thread_index])
+                handled = True
         elif k == "KEY_A2" or k == "KEY_UP":  # UP
             if self._composing_new_thread:
                 pass
@@ -537,12 +543,13 @@ class ChatUI(object):
         messages = self.thread.messages.order_by(ChatMessage.created_date_time).all()
         curr_row = 0
         for msg in messages:
-            username = f"{msg.sender.display_name}: "
-            self.pad.addstr(
-                curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
-            )
-            self.pad.addstr(curr_row, len(username), f"{msg.body}")
-            curr_row += 1
+            curr_row += self._draw_single_message(msg, 0, curr_row)
+            # username = f"{msg.sender.display_name}: "
+            # self.pad.addstr(
+            #     curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
+            # )
+            # self.pad.addstr(curr_row, len(username), f"{msg.body}")
+            # curr_row += 1
         if len(messages) == 0:
             self.pad.addstr(
                 curr_row,
@@ -601,26 +608,53 @@ class ChatUI(object):
                 # replies = msg.replies.all()
                 # for reply in replies:
                 #     print(f"\t@{reply.sender.display_name}: {reply.body}")
-        pass
 
     def _draw_thread_message(self):
-        pass
         curr_row = 0
         msg = self._root_message
 
-        username = f"{msg.sender.display_name}: "
-        self.pad.addstr(curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR))
-        self.pad.addstr(curr_row, len(username), f"{msg.body}")
-        curr_row += 1
+        # username = f"{msg.sender.display_name}: "
+        # self.pad.addstr(curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR))
+        # self.pad.addstr(curr_row, len(username), f"{msg.body}")
+        # curr_row += 1
+        curr_row += self._draw_single_message(msg, 0, curr_row)
 
         replies = msg.replies.all()
         for reply in replies:
-            username = f"  {reply.sender.display_name}: "
-            self.pad.addstr(
-                curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
-            )
-            self.pad.addstr(curr_row, len(username), f"{reply.body}")
-            curr_row += 1
+            curr_row += self._draw_single_message(reply, 2, curr_row)
+            # username = f"  {reply.sender.display_name}: "
+            # self.pad.addstr(
+            #     curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
+            # )
+            # self.pad.addstr(curr_row, len(username), f"{reply.body}")
+            # curr_row += 1
+
+    def _draw_single_message(self, msg, indent=0, initial_row=0):
+        username_prefix = " " * indent
+        username = msg.sender.display_name
+        username_suffix = ": "
+
+        self.pad.addstr(initial_row, 0, username_prefix)
+        self.pad.addstr(
+            initial_row,
+            indent,
+            username,
+            curses.color_pair(ChatUI.USERNAME_COLOR) + curses.A_UNDERLINE,
+        )
+        self.pad.addstr(initial_row, indent + len(username), username_suffix)
+        start_col = len(username_prefix + username + username_suffix)
+
+        message_body_width = self.window_width - start_col
+
+        message_rows = [
+            msg.body[i : i + message_body_width]
+            for i in range(0, len(msg.body), message_body_width)
+        ]
+
+        for row_index, row_text in enumerate(message_rows):
+            self.pad.addstr(initial_row + row_index, start_col, row_text)
+
+        return len(message_rows)
 
     def send_message(self, message):
         if self._mode == ChatUI.DIRECT_MESSAGE:
@@ -659,6 +693,8 @@ class ChatUI(object):
         msg_model = get_or_create_message_model(db, resp_json)
         msg_model.from_id = self.current_user.id
         db.session.commit()
+
+        self.open_thread(msg_model)
 
     def _reply_to_thread(self, message):
         db = self.instance.get_db()

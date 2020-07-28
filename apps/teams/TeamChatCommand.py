@@ -20,7 +20,7 @@ from msgraph import helpers
 class TeamChatCommand(BaseCommand):
     def add_parser(self, subparsers):
         chat_cmd = subparsers.add_parser(
-            "chat", description="This is the teams chat UI"
+            "channel", description="This is the teams chat UI"
         )
 
         chat_cmd.add_argument(

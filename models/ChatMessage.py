@@ -52,6 +52,8 @@ class ChatMessage(base):
     @staticmethod
     def from_json(json_blob):
         result = ChatMessage()
+        # print(json.dumps(json_blob, indent=2))
+
         result.graph_id = json_blob["id"]
         result.created_date_time = datetime_from_string(json_blob["createdDateTime"])
         result.last_modified_date_time = datetime_from_string(
@@ -62,7 +64,7 @@ class ChatMessage(base):
 
         result.reply_to_id = json_blob["replyToId"]
 
-        if "channelIdentity" in json_blob:
+        if "channelIdentity" in json_blob and json_blob["channelIdentity"] is not None:
             result.team_id = json_blob["channelIdentity"]["teamId"]
             result.channel_id = json_blob["channelIdentity"]["channelId"]
 

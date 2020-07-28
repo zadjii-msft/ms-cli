@@ -30,7 +30,7 @@ class TeamsCacheCommand(BaseCommand):
         graph = instance.get_graph_session()
 
         if not quiet:
-            print(f"caching all messages...")
+            print(f"fetching all messages...")
 
         chats = helpers.list_chats(graph)
 
