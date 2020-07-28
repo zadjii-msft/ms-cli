@@ -68,9 +68,9 @@ class TeamChatCommand(BaseCommand):
         if matched_channel is None:
             return Error(f"Could not find the channel:{channel_name}")
 
-        # print(f"{matched_team.graph_id}")
-        # print(f"{matched_channel.graph_id}")
-        print(f"opening channel {matched_team.display_name}/{matched_channel.display_name}")
+        print(
+            f"opening channel {matched_team.display_name}/{matched_channel.display_name}"
+        )
 
         ui = ChatUI.create_for_channel(instance, matched_channel)
         ui.start()

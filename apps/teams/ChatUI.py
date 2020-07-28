@@ -677,7 +677,6 @@ class ChatUI(object):
             self._draw_thread_message()
 
     def _draw_direct_messages(self):
-        # messages = self.thread.messages.order_by(ChatMessage.created_date_time).all()
         messages = self.thread.messages.order_by(
             ChatMessage.created_date_time.desc()
         ).all()
@@ -698,27 +697,8 @@ class ChatUI(object):
             MessageTextBox.create_chat_message(msg, 0, self.window_width)
             for msg in messages
         ]
-        current_bottom = self._pad_height
-        pad_view_height = self.chat_history_height
-        pad_view_top = self._pad_height - pad_view_height
 
-        for mb in message_boxes:
-            h = mb.get_height()
-            # print(f"cb, h:{current_bottom}, {h}")
-            mb.draw(self.pad, current_bottom - h)
-            current_bottom -= h
-            if current_bottom < pad_view_top:
-                break
-
-        # curr_row = 0
-        # for msg in messages:
-        #     curr_row += self._draw_single_message(msg, 0, curr_row)
-        #     # username = f"{msg.sender.display_name}: "
-        #     # self.pad.addstr(
-        #     #     curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
-        #     # )
-        #     # self.pad.addstr(curr_row, len(username), f"{msg.body}")
-        #     # curr_row += 1
+        self._draw_messages_bottom_up(message_boxes)
 
     def _draw_channels_threads(self):
         self._toplevel_messages = []
@@ -737,80 +717,21 @@ class ChatUI(object):
             )
             for i, msg in enumerate(self._toplevel_messages)
         ]
-        current_bottom = self._pad_height
-        pad_view_height = self.chat_history_height
-        pad_view_top = self._pad_height - pad_view_height
 
-        for mb in message_boxes:
-            h = mb.get_height()
-            # print(f"cb, h:{current_bottom}, {h}")
-            mb.draw(self.pad, current_bottom - h)
-            current_bottom -= h
-            if current_bottom < pad_view_top:
-                break
-
-        # for msg in self._toplevel_messages:
-
-        #     msg_height = self._draw_single_message(msg, 1, curr_row)
-
-        #     if curr_msg_index == self._selected_thread_index:
-        #         for i in range(0, msg_height + 1):
-        #             self.pad.addstr(
-        #                 curr_row + i,
-        #                 0,
-        #                 " ",
-        #                 curses.color_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR),
-        #             )
-
-        #     # username = f"{msg.sender.display_name}: "
-        #     # self.pad.addstr(
-        #     #     curr_row, 1, username, curses.color_pair(ChatUI.USERNAME_COLOR)
-        #     # )
-        #     # self.pad.addstr(curr_row, len(username) + 1, f"{msg.body}")
-        #     # curr_row += 1
-        #     curr_row += msg_height
-
-        #     replies = msg.replies.all()
-        #     num_replies = len(replies)
-        #     active_attr = curses.color_pair(0) + (
-        #         curses.A_UNDERLINE
-        #         if curr_msg_index == self._selected_thread_index
-        #         else 0
-        #     )
-        #     if num_replies == 0:
-        #         self.pad.addstr(curr_row, 3, f"↳ (no replies yet)", active_attr)
-        #     elif num_replies == 1:
-        #         self.pad.addstr(curr_row, 3, f"↳ 1 reply", active_attr)
-        #     else:
-        #         self.pad.addstr(curr_row, 3, f"↳ {num_replies} replies", active_attr)
-        #     curr_row += 1
-
-        #     curr_msg_index += 1
-
-        #     # print(f"@{msg.sender.display_name}: {msg.body}")
-        #     # replies = msg.replies.all()
-        #     # for reply in replies:
-        #     #     print(f"\t@{reply.sender.display_name}: {reply.body}")
+        self._draw_messages_bottom_up(message_boxes)
 
     def _draw_thread_message(self):
-        # curr_row = 0
-        # msg = self._root_message
-
-        # curr_row += self._draw_single_message(msg, 0, curr_row)
-
-        # replies = msg.replies.all()
-        # for reply in replies:
-        #     curr_row += self._draw_single_message(reply, 2, curr_row)
-
-
         message_boxes = [
-            MessageTextBox.create_chat_message(
-                msg, 2, self.window_width
-            )
+            MessageTextBox.create_chat_message(msg, 2, self.window_width)
             for i, msg in enumerate(self._root_message.replies.all())
         ]
-        message_boxes.append(MessageTextBox.create_chat_message(self._root_message, 0, self.window_width))
+        message_boxes.append(
+            MessageTextBox.create_chat_message(self._root_message, 0, self.window_width)
+        )
+        self._draw_messages_bottom_up(message_boxes)
 
+    def _draw_messages_bottom_up(self, message_boxes):
+        # type: ([MessageTextBox]) -> None
         current_bottom = self._pad_height
         pad_view_height = self.chat_history_height
         pad_view_top = self._pad_height - pad_view_height
@@ -822,36 +743,6 @@ class ChatUI(object):
             current_bottom -= h
             if current_bottom < pad_view_top:
                 break
-
-    def _draw_single_message(self, msg, indent=0, initial_row=0):
-        msg_box = MessageTextBox.create_chat_message(msg, indent, self.window_width)
-        msg_box.draw(self.pad, initial_row)
-        return msg_box.get_height()
-        # username_prefix = " " * indent
-        # username = msg.sender.display_name
-        # username_suffix = ": "
-
-        # self.pad.addstr(initial_row, 0, username_prefix)
-        # self.pad.addstr(
-        #     initial_row,
-        #     indent,
-        #     username,
-        #     curses.color_pair(ChatUI.USERNAME_COLOR) + curses.A_UNDERLINE,
-        # )
-        # self.pad.addstr(initial_row, indent + len(username), username_suffix)
-        # start_col = len(username_prefix + username + username_suffix)
-
-        # message_body_width = self.window_width - start_col
-
-        # message_rows = [
-        #     msg.body[i : i + message_body_width]
-        #     for i in range(0, len(msg.body), message_body_width)
-        # ]
-
-        # for row_index, row_text in enumerate(message_rows):
-        #     self.pad.addstr(initial_row + row_index, start_col, row_text)
-
-        # return len(message_rows)
 
     def send_message(self, message):
         if self._mode == ChatUI.DIRECT_MESSAGE:
