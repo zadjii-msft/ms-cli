@@ -3,21 +3,22 @@ from common.ResultAndData import *
 import sys
 import common.ParserState
 
+
 def do_common_interactive_with_args(modename, parser, instance, args):
     common.ParserState.doExitOnError = False
     while True:
         print(f"ms {modename}>", end=" ")
         command = input().split(" ")
 
-        if (len(command) == 1):
+        if len(command) == 1:
             c = command[0].lower()
-            
+
             if command[0].lower() == "exit" or command[0].lower() == "quit":
-                print('Goodbye')
+                print("Goodbye")
                 sys.exit(0)
 
             if command[0].lower() == "up" or command[0].lower() == "back":
-                print('Returning to main menu...')
+                print("Returning to main menu...")
                 break
 
         try:
@@ -32,8 +33,8 @@ def do_common_interactive_with_args(modename, parser, instance, args):
                             print(result.data)
                             print("\x1b[m")
             else:
-                print('Invalid command')
+                print("Invalid command")
         except CaughtParserError as e:
             print(e)
-            
+
     return Error()

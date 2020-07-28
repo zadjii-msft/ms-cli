@@ -7,45 +7,12 @@ from models.ChatThread import ChatThread, get_or_create_thread_model
 from argparse import Namespace
 from sqlalchemy import func, distinct
 from apps.teams.TeamsCacheCommand import TeamsCacheCommand
+from apps.teams.TeamsTeamCommand import TeamsTeamCommand
 import curses
 import os
 from curses.textpad import Textbox, rectangle
 from time import sleep
 from msgraph import helpers
-
-def get_buffer_size():
-
-    import ctypes
-    class CONSOLE_SCREEN_BUFFER_INFO(ctypes.Structure):
-        _fields_ = [
-            ('dwSize', ctypes.wintypes._COORD),
-            ('dwCursorPosition', ctypes.wintypes._COORD),
-            ('wAttributes', ctypes.c_ushort),
-            ('srWindow', ctypes.wintypes._SMALL_RECT),
-            ('dwMaximumWindowSize', ctypes.wintypes._COORD)
-        ]
-
-    ctypes.windll.kernel32.GetStdHandle.restype = ctypes.wintypes.HANDLE
-    hstd = ctypes.windll.kernel32.GetStdHandle(-11) # STD_OUTPUT_HANDLE = -11
-    csbi = CONSOLE_SCREEN_BUFFER_INFO()
-    # print(csbi.__dict__)
-    # print(csbi.srWindow)
-    # print(csbi.srWindow.Top)
-    # print(csbi.srWindow.Right)
-    ret = ctypes.windll.kernel32.GetConsoleScreenBufferInfo(
-        hstd,
-        ctypes.byref(csbi)
-    )
-    if ret == False:
-        return Error('Failed to retrieve console buffer size')
-    width = csbi.srWindow.Right - csbi.srWindow.Left
-    height = csbi.srWindow.Bottom - csbi.srWindow.Top
-    return Success( (width, height) )
-    # print(csbi.__dict__)
-    # print(csbi.srWindow)
-    # print(csbi.srWindow.Top)
-    # print(csbi.srWindow.Right)
-    return ResultAndData(ret, csbi)
 
 
 class ChatUI(object):
@@ -170,7 +137,9 @@ class ChatUI(object):
         curses.init_pair(ChatUI.TITLE_COLOR, curses.COLOR_WHITE, 62)
         curses.init_pair(ChatUI.USERNAME_COLOR, curses.COLOR_BLACK, -1)
         curses.init_pair(ChatUI.DATETIME_COLOR, curses.COLOR_BLACK, -1)
-        curses.init_pair(ChatUI.FOCUSED_INPUT_COLOR, curses.COLOR_BLACK, curses.COLOR_WHITE)
+        curses.init_pair(
+            ChatUI.FOCUSED_INPUT_COLOR, curses.COLOR_BLACK, curses.COLOR_WHITE
+        )
         curses.init_pair(
             ChatUI.UNFOCUSED_INPUT_COLOR, curses.COLOR_WHITE, curses.COLOR_BLACK
         )
@@ -182,29 +151,13 @@ class ChatUI(object):
         self.update_sizes()
 
     def update_sizes(self):
-
-        # self.window_width = curses.COLS - 1
-        # self.window_height = curses.LINES - 1
-        # print(' --- update_sizes --- ')
-        # print(f'current window:{self.window_width}, {self.window_height}')
-        # (c, l) = os.get_terminal_size()
-        # print(f'get_terminal_size:{c}, {l}')
-        rd = get_buffer_size()
-        if rd.success:
-            (w, h) = rd.data
-            curses.update_lines_cols()
-            # print(f'curses:{curses.COLS}, {curses.LINES}')
-            # print(f'get_terminal_size:{os.get_terminal_size()}')
-            # print(f'get_buffer_size:{w}, {h}')
-
-            # OKAY. Definitively, these guys are the right ones.
-            #
-            # GetConsoleScreenBufferInfo will return the size of the _main_
-            # buffer, which _isn't_  resized till the buffer exits....
-            self.window_width = curses.COLS - 1
-            self.window_height = curses.LINES - 1
-        # print(' --- ------------ --- ')
-
+        # OKAY. Definitively, these guys are the right ones.
+        #
+        # GetConsoleScreenBufferInfo will return the size of the _main_
+        # buffer, which _isn't_  resized till the buffer exits....
+        curses.update_lines_cols()
+        self.window_width = curses.COLS - 1
+        self.window_height = curses.LINES - 1
 
         self.title_height = 1
         raw_title = self._get_raw_title()
@@ -237,14 +190,12 @@ class ChatUI(object):
         else:
             pass
 
-
         return labels
-
 
     def draw_keybindings(self):
         self.stdscr.move(
-            self.keybinding_labels_origin_row,
-            self.keybinding_labels_origin_col)
+            self.keybinding_labels_origin_row, self.keybinding_labels_origin_col
+        )
         self.stdscr.clrtoeol()
         self.stdscr.addstr(
             self.keybinding_labels_origin_row,
@@ -260,16 +211,14 @@ class ChatUI(object):
         attr = curses.color_pair(ChatUI.FOCUSED_INPUT_COLOR)
         if self._mode == ChatUI.CHANNEL_ROOT and not self._composing_new_thread:
             attr = curses.color_pair(ChatUI.UNFOCUSED_INPUT_COLOR)
-            curses.curs_set(0) # hide the cursor
+            curses.curs_set(0)  # hide the cursor
         else:
-            curses.curs_set(1) # show the cursor
-
+            curses.curs_set(1)  # show the cursor
 
         self.editwin.bkgd(" ", attr)
 
         self.editwin.clear()
         self.editwin.addstr(0, 0, self.input_line)
-
 
     @staticmethod
     def main(stdscr, self):
@@ -279,7 +228,6 @@ class ChatUI(object):
         self.draw_titlebar()
         self.draw_keybindings()
 
-        # editwin = curses.newwin(height, width, y, x)
         self.editwin = curses.newwin(
             self.message_box_height,
             self.message_box_width,
@@ -306,8 +254,7 @@ class ChatUI(object):
         handled = False
 
         # Handle window resizing. Do this first
-        if k == 'KEY_RESIZE':
-            # curses.update_lines_cols()
+        if k == "KEY_RESIZE":
             self.update_sizes()
             self._redraw_everything()
             return True
@@ -328,7 +275,7 @@ class ChatUI(object):
         if k == "\n":
             self.open_thread(self._toplevel_messages[self._selected_thread_index])
             handled = True
-        elif k == "KEY_A2" or k == 'KEY_UP':  # UP
+        elif k == "KEY_A2" or k == "KEY_UP":  # UP
             if self._composing_new_thread:
                 pass
             else:
@@ -338,7 +285,7 @@ class ChatUI(object):
                 self.draw_messages()
                 self.refresh_display()
                 handled = True
-        elif k == "KEY_C2" or k == 'KEY_DOWN':  # DOWN
+        elif k == "KEY_C2" or k == "KEY_DOWN":  # DOWN
             if self._composing_new_thread:
                 pass
             else:
@@ -355,7 +302,6 @@ class ChatUI(object):
                 self.draw_keybindings()
                 self.draw_edit_box()
                 self.refresh_display()
-                # curses.curs_set(1) # show the cursor
             handled = True
         elif k == "\x1b":  # Esc
             if self._composing_new_thread:
@@ -364,7 +310,6 @@ class ChatUI(object):
                 self.draw_keybindings()
                 self.draw_edit_box()
                 self.refresh_display()
-                # curses.curs_set(0) # hide the cursor
             handled = True
         return handled
 
@@ -550,7 +495,20 @@ class ChatUI(object):
         pass
 
     def _reply_to_thread(self, message):
-        pass
+        db = self.instance.get_db()
+        graph = self.instance.get_graph_session()
+        response = helpers.send_channel_message_reply(
+            graph,
+            team_id=self._team.graph_id,
+            channel_id=self._channel.graph_id,
+            parent_msg_id=self._root_message.graph_id,
+            message=message,
+        )
+        resp_json = response.json()
+
+        msg_model = get_or_create_message_model(db, resp_json)
+        msg_model.from_id = self.current_user.id
+        db.session.commit()
 
     def _get_raw_title(self):
         if self._mode == ChatUI.DIRECT_MESSAGE:
@@ -580,6 +538,10 @@ class ChatUI(object):
         elif self._mode == ChatUI.GROUP_THREAD:
             TeamsCacheCommand.cache_all_messages(self.instance, quiet=True)
         elif self._mode == ChatUI.CHANNEL_ROOT:
-            pass  # TODO
+            TeamsTeamCommand.cache_messages_in_channel(
+                self.instance, self._channel, quiet=True
+            )
         elif self._mode == ChatUI.CHANNEL_MESSAGE:
-            pass  # TODO
+            TeamsTeamCommand.cache_replies_to_message(
+                self.instance, self._root_message, quiet=True
+            )

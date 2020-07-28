@@ -865,6 +865,28 @@ def send_channel_message(session, *, team_id, channel_id, message):
     return session.post(api_endpoint(endpoint), json=payload)
 
 
+def send_channel_message_reply(session, *, team_id, channel_id, parent_msg_id, message):
+    """Send a reply to a thread in a channel
+
+    session      = requests.Session() instance with Graph access token
+    team_id = Team ID
+    channel_id = Channel ID
+    parent_msg_id = Chat ID for the root of the thread in the channel
+    message = text to send
+
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/beta/teams/{id}/channels/{channel_id}/messages/{parent_msg_id}/replies'
+
+    endpoint = f"teams/{team_id}/channels/{channel_id}/messages/{parent_msg_id}/replies"
+
+    payload = {}
+    payload["body"] = {"content": message}
+
+    return session.post(api_endpoint(endpoint), json=payload)
+
+
 def send_chat_message(session, *, chat_id, message):
     """Send message to a chat
 

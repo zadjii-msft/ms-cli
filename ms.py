@@ -49,6 +49,7 @@ class MigrateCommand(BaseCommand):
         # TODO: Does this even work? I have no idea
         return Error()
 
+
 # See https://docs.python.org/3/library/argparse.html#exiting-methods, used to override exit behavior if we want.
 class ErrorCatchingArgumentParser(argparse.ArgumentParser):
     def exit(self, status=0, message=None):
@@ -57,10 +58,10 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
         _sys.exit(status)
 
     def error(self, message):
-        if (common.ParserState.doExitOnError):
+        if common.ParserState.doExitOnError:
             self.print_usage(_sys.stderr)
-            args = {'prog': self.prog, 'message': message}
-            self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+            args = {"prog": self.prog, "message": message}
+            self.exit(2, _("%(prog)s: error: %(message)s\n") % args)
         else:
             raise CaughtParserError(message=message)
 
@@ -69,7 +70,7 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
 
         # positionals, optionals and user-defined groups
         for action_group in self._action_groups:
-            if action_group.title == 'apps':
+            if action_group.title == "apps":
                 formatter.start_section(action_group.title)
                 formatter.add_text(action_group.description)
                 formatter.add_arguments(action_group._group_actions)
@@ -82,6 +83,7 @@ class ErrorCatchingArgumentParser(argparse.ArgumentParser):
         if file is None:
             file = _sys.stdout
         self._print_message(self.format_apps_help(), file)
+
 
 def build_arg_parser():
     root_parser = ErrorCatchingArgumentParser(add_help=False)
@@ -159,6 +161,7 @@ def dostuff2(instance):
     print(json.dumps(messages, indent=2))
     exit()
 
+
 def ms_main(argv):
 
     enable_vt_support()
@@ -172,8 +175,10 @@ def ms_main(argv):
             print("ms>", end=" ")
             command = input().split(" ")
 
-            if (len(command) == 1 and (command[0].lower() == "exit" or command[0].lower() == "quit")):
-                print('Goodbye!')
+            if len(command) == 1 and (
+                command[0].lower() == "exit" or command[0].lower() == "quit"
+            ):
+                print("Goodbye!")
                 sys.exit(0)
 
             try:
@@ -189,7 +194,7 @@ def ms_main(argv):
                                 print(result.data)
                                 print("\x1b[m")
                 else:
-                    print('Invalid command')
+                    print("Invalid command")
             except CaughtParserError as e:
                 print(e)
 

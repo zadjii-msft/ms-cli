@@ -9,7 +9,7 @@ from models.ChatThread import ChatThread, get_or_create_thread_model
 from argparse import Namespace
 from sqlalchemy import func, distinct
 from apps.teams.TeamsCacheCommand import TeamsCacheCommand
-from apps.teams.ChatUI import ChatUI, get_buffer_size
+from apps.teams.ChatUI import ChatUI
 import curses
 import os
 from curses.textpad import Textbox, rectangle
@@ -68,16 +68,8 @@ class TeamChatCommand(BaseCommand):
         if matched_channel is None:
             return Error(f"Could not find the channel:{channel_name}")
 
-        # (c, l) = os.get_terminal_size()
-        # print(f'get_terminal_size:{c}, {l}')
-
-        # rd = get_buffer_size()
-        # if rd.success:
-        #     (w, h) = rd.data
-        #     print(f'get_buffer_size:{w}, {h}')
-        #     # print(rd.data.__dict__)
-        #     return Success()
-        # return Success()
+        # print(f"{matched_team.graph_id}")
+        # print(f"{matched_channel.graph_id}")
 
         ui = ChatUI.create_for_channel(instance, matched_channel)
         ui.start()

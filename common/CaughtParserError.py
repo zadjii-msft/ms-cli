@@ -5,7 +5,7 @@ class CaughtParserError(Exception):
     information about the argument that caused it.
     """
 
-    def __init__(self, message):     
+    def __init__(self, message):
         self.message = message
 
     def __str__(self):

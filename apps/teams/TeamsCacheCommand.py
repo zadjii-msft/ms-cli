@@ -12,7 +12,7 @@ import json
 class TeamsCacheCommand(BaseCommand):
     def add_parser(self, subparsers):
         cache_cmd = subparsers.add_parser(
-            "cache", description="cache teams chat threads"
+            "cache", description="cache all direct chat threads from Teams"
         )
         return cache_cmd
 

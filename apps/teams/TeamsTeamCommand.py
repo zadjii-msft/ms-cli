@@ -48,17 +48,28 @@ class TeamsTeamCommand(BaseCommand):
         )
         for chat_json in response["value"]:
             msg = get_or_create_message_model(db, chat_json)
+            # TODO: If the message has a user that we don't know yet, fetch them too!
+            TeamsTeamCommand.cache_replies_to_message(instance, msg)
 
-            chat_id = chat_json["id"]
+        db.session.commit()
 
-            replies = helpers.list_channel_message_replies(
-                graph,
-                team_id=team.graph_id,
-                channel_id=channel.graph_id,
-                chat_id=msg.graph_id,
-            )
-            for reply_json in replies["value"]:
-                reply = get_or_create_message_model(db, reply_json)
+    @staticmethod
+    def cache_replies_to_message(instance, msg, quiet=False):
+        # type: (Instance) -> ResultAndData
+        db = instance.get_db()
+        graph = instance.get_graph_session()
+        channel = msg.channel
+        team = channel.team
+
+        replies = helpers.list_channel_message_replies(
+            graph,
+            team_id=team.graph_id,
+            channel_id=channel.graph_id,
+            chat_id=msg.graph_id,
+        )
+        for reply_json in replies["value"]:
+            reply = get_or_create_message_model(db, reply_json)
+            # TODO: If the message has a user that we don't know yet, fetch them too!
 
         db.session.commit()
 

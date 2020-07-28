@@ -9,6 +9,7 @@ from apps.onedrive.OnedriveRenameCommand import OnedriveRenameCommand
 from apps.onedrive.OnedriveMakeDirCommand import OnedriveMakeDirCommand
 from apps.onedrive.OnedriveListCommand import OnedriveListCommand
 
+
 class OnedriveCommand(BaseCommand):
 
     _cmd = None
@@ -37,8 +38,6 @@ class OnedriveCommand(BaseCommand):
 
         self._cmd = onedrive_cmd
         return onedrive_cmd
-
-    
 
     def do_command_with_args(self, instance, args):
         # type: (Instance, Namespace) -> ResultAndData
