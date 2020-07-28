@@ -303,10 +303,13 @@ class ChatUI(object):
             self.keybinding_labels_origin_row, self.keybinding_labels_origin_col
         )
         self.stdscr.clrtoeol()
+        actual_label = self._get_keybindings_labels()
+        if len(actual_label) > self.window_width:
+            actual_label = actual_label[: self.window_width - 3] + "..."
         self.stdscr.addstr(
             self.keybinding_labels_origin_row,
             self.keybinding_labels_origin_col,
-            self._get_keybindings_labels(),
+            actual_label,
             curses.color_pair(ChatUI.KEYBINDING_COLOR),
         )
 
@@ -566,68 +569,58 @@ class ChatUI(object):
             if msg.is_toplevel():
                 self._toplevel_messages.append(msg)
 
-                if curr_msg_index == self._selected_thread_index:
+        for msg in self._toplevel_messages:
+
+            msg_height = self._draw_single_message(msg, 1, curr_row)
+
+            if curr_msg_index == self._selected_thread_index:
+                for i in range(0, msg_height + 1):
                     self.pad.addstr(
-                        curr_row,
+                        curr_row + i,
                         0,
                         " ",
                         curses.color_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR),
                     )
-                    self.pad.addstr(
-                        curr_row + 1,
-                        0,
-                        " ",
-                        curses.color_pair(ChatUI.ACTIVE_THREAD_INDICATOR_COLOR),
-                    )
 
-                username = f"{msg.sender.display_name}: "
-                self.pad.addstr(
-                    curr_row, 1, username, curses.color_pair(ChatUI.USERNAME_COLOR)
-                )
-                self.pad.addstr(curr_row, len(username) + 1, f"{msg.body}")
-                curr_row += 1
+            # username = f"{msg.sender.display_name}: "
+            # self.pad.addstr(
+            #     curr_row, 1, username, curses.color_pair(ChatUI.USERNAME_COLOR)
+            # )
+            # self.pad.addstr(curr_row, len(username) + 1, f"{msg.body}")
+            # curr_row += 1
+            curr_row += msg_height
 
-                replies = msg.replies.all()
-                num_replies = len(replies)
-                active_attr = curses.color_pair(0) + (
-                    curses.A_UNDERLINE
-                    if curr_msg_index == self._selected_thread_index
-                    else 0
-                )
-                if num_replies == 0:
-                    self.pad.addstr(curr_row, 3, f"↳(no replies yet)", active_attr)
-                elif num_replies == 1:
-                    self.pad.addstr(curr_row, 3, f"↳1 reply", active_attr)
-                else:
-                    self.pad.addstr(curr_row, 3, f"↳{num_replies} replies", active_attr)
-                curr_row += 1
+            replies = msg.replies.all()
+            num_replies = len(replies)
+            active_attr = curses.color_pair(0) + (
+                curses.A_UNDERLINE
+                if curr_msg_index == self._selected_thread_index
+                else 0
+            )
+            if num_replies == 0:
+                self.pad.addstr(curr_row, 3, f"↳(no replies yet)", active_attr)
+            elif num_replies == 1:
+                self.pad.addstr(curr_row, 3, f"↳1 reply", active_attr)
+            else:
+                self.pad.addstr(curr_row, 3, f"↳{num_replies} replies", active_attr)
+            curr_row += 1
 
-                curr_msg_index += 1
+            curr_msg_index += 1
 
-                # print(f"@{msg.sender.display_name}: {msg.body}")
-                # replies = msg.replies.all()
-                # for reply in replies:
-                #     print(f"\t@{reply.sender.display_name}: {reply.body}")
+            # print(f"@{msg.sender.display_name}: {msg.body}")
+            # replies = msg.replies.all()
+            # for reply in replies:
+            #     print(f"\t@{reply.sender.display_name}: {reply.body}")
 
     def _draw_thread_message(self):
         curr_row = 0
         msg = self._root_message
 
-        # username = f"{msg.sender.display_name}: "
-        # self.pad.addstr(curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR))
-        # self.pad.addstr(curr_row, len(username), f"{msg.body}")
-        # curr_row += 1
         curr_row += self._draw_single_message(msg, 0, curr_row)
 
         replies = msg.replies.all()
         for reply in replies:
             curr_row += self._draw_single_message(reply, 2, curr_row)
-            # username = f"  {reply.sender.display_name}: "
-            # self.pad.addstr(
-            #     curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
-            # )
-            # self.pad.addstr(curr_row, len(username), f"{reply.body}")
-            # curr_row += 1
 
     def _draw_single_message(self, msg, indent=0, initial_row=0):
         username_prefix = " " * indent
