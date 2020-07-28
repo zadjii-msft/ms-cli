@@ -272,23 +272,88 @@ def get_user(session, *, user_id="me"):
     response.raise_for_status()
     return response.json()
 
+def get_mail(session, *, user_id="me", mailid):
+    """Get a mail message
 
-def list_mail(session, *, user_id="me", search=None):
+    session      = requests.Session() instance with Graph access token
+    user_id = Graph id value for the user, or 'me' (default) for current user
+    
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/v1.0/me/messages/id'
+
+    endpoint = f"me/messages/{mailid}" if user_id == "me" else f"users/{user_id}/messages/{mailid}"
+
+    response = session.get(api_endpoint(endpoint), headers={"Prefer":"outlook.body-content-type=\"text\""})
+    response.raise_for_status()
+    return response.json()
+
+
+def list_mail(session, *, user_id="me", folder=None, search=None, filter=None, select=None):
     """List email from current user.
 
     session      = requests.Session() instance with Graph access token
     user_id = Graph id value for the user, or 'me' (default) for current user
     search  = optional text to search for
+    filter = optional filters to apply to search
+    select = reduce result to only some columns
 
     Returns the whole JSON for the message request
     """
 
     # MAIL_QUERY = 'https://graph.microsoft.com/v1.0/me/messages?$search="{query}"'
 
-    endpoint = "me/messages" if user_id == "me" else f"users/{user_id}/messages"
+    if not folder:
+        endpoint = "me/messages" if user_id == "me" else f"users/{user_id}/messages"
+    else:
+        endpoint = f"me/mailFolders/{folder}/messages" if user_id == "me" else f"users/{user_id}/mailFolders/{folder}/messages"
+
+    argsApplied = False
 
     if search:
-        endpoint += '?$search="%s"' % search
+        if not argsApplied:
+            endpoint += '?'
+            argsApplied = True
+        else:
+            endpoint += '&'
+            
+        endpoint += '$search="%s"' % search
+
+    if filter:
+        if not argsApplied:
+            endpoint += '?'
+            argsApplied = True
+        else:
+            endpoint += '&'
+            
+        endpoint += '$filter="%s"' % filter
+
+    if select:
+        if not argsApplied:
+            endpoint += '?'
+            argsApplied = True
+        else:
+            endpoint += '&'
+            
+        endpoint += f"$select={select}"
+
+    response = session.get(api_endpoint(endpoint))
+    response.raise_for_status()
+    return response.json()
+
+def list_mail_folders(session, *, user_id="me"):
+    """List mail folders from current user.
+
+    session      = requests.Session() instance with Graph access token
+    user_id = Graph id value for the user, or 'me' (default) for current user
+    
+    Returns the whole JSON for the message request
+    """
+
+    # MAIL_QUERY = 'https://graph.microsoft.com/v1.0/me/mailFolders'
+
+    endpoint = "me/mailFolders" if user_id == "me" else f"users/{user_id}/mailFolders"
 
     response = session.get(api_endpoint(endpoint))
     response.raise_for_status()

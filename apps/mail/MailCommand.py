@@ -2,7 +2,9 @@ from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
 from common.Submenu import do_common_interactive_with_args
 from argparse import Namespace
-
+from apps.mail.MailListCommand import MailListCommand
+from apps.mail.MailFoldersCommand import MailFoldersCommand
+from apps.mail.MailReadCommand import MailReadCommand
 
 class MailCommand(BaseCommand):
 
@@ -23,6 +25,10 @@ class MailCommand(BaseCommand):
             description="Mail commands",
             help="Which mail command to run",
         )
+
+        list_cmd = MailListCommand(subparsers)
+        folders_cmd = MailFoldersCommand(subparsers)
+        read_cmd = MailReadCommand(subparsers)
 
         self._cmd = mail_cmd
         return mail_cmd
