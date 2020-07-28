@@ -334,15 +334,25 @@ class ChatUI(object):
             self.refresh_display()
             self.refresh_display()
         elif k == "\x08":
-            self.input_line = self.input_line[:-1]
-            self.draw_edit_box()
-            self.refresh_display()
-            self.refresh_display()
+            if self._mode == ChatUI.CHANNEL_ROOT and not self._composing_new_thread:
+                # If we're in the channel root and we're not in compose mode,
+                # ignore the character
+                pass
+            else:
+                self.input_line = self.input_line[:-1]
+                self.draw_edit_box()
+                self.refresh_display()
+                self.refresh_display()
         else:
-            self.input_line += k
-            self.draw_edit_box()
-            self.refresh_display()
-            self.refresh_display()
+            if self._mode == ChatUI.CHANNEL_ROOT and not self._composing_new_thread:
+                # If we're in the channel root and we're not in compose mode,
+                # ignore the character
+                pass
+            else:
+                self.input_line += k
+                self.draw_edit_box()
+                self.refresh_display()
+                self.refresh_display()
 
     def start(self):
         curses.wrapper(ChatUI.main, self)
@@ -492,7 +502,19 @@ class ChatUI(object):
         db.session.commit()
 
     def _create_new_thread(self, message):
-        pass
+        db = self.instance.get_db()
+        graph = self.instance.get_graph_session()
+        response = helpers.send_channel_message(
+            graph,
+            team_id=self._team.graph_id,
+            channel_id=self._channel.graph_id,
+            message=message,
+        )
+        resp_json = response.json()
+
+        msg_model = get_or_create_message_model(db, resp_json)
+        msg_model.from_id = self.current_user.id
+        db.session.commit()
 
     def _reply_to_thread(self, message):
         db = self.instance.get_db()
