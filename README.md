@@ -12,11 +12,11 @@ With the `ms` CLI tool, you can interact with any applications connected to the 
 - View and send emails in Outlook
 - and much much more
 
-![teams-side-by-side](blob/master/screenshots/teams-side-by-side.png)
+![teams-side-by-side](screenshots/teams-side-by-side.png)
 
 Leveraging the power of the [Windows Terminal](https://github.com/microsoft/terminal), users can have multiple chat threads open in a single window side-by-side, by using [panes](https://docs.microsoft.com/en-us/windows/terminal/panes) in the Terminal.
 
-Checkout more [screenshots](blob/master/screenshots).
+Checkout more [screenshots](screenshots/).
 
 ## Contributing
 
