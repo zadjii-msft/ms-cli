@@ -55,10 +55,6 @@ class MessageTextBox(object):
         self._message_body_width = self._width - self._start_col
 
     def draw(self, pad, initial_row):
-        # username_prefix = " " * self._indent
-        # username = self._msg.sender.display_name
-        # username_suffix = ": "
-
         pad.addstr(initial_row, 0, self._username_prefix)
         pad.addstr(
             initial_row,
@@ -69,9 +65,6 @@ class MessageTextBox(object):
         pad.addstr(
             initial_row, self._indent + len(self._username), self._username_suffix
         )
-        # start_col = len(username_prefix + username + username_suffix)
-
-        # message_body_width = self._width - start_col
 
         message_rows = self._get_rows()
         msg_height = self.get_height()
@@ -128,11 +121,6 @@ class MessageTextBox(object):
             row = self._msg.body[i : i + self._message_body_width]
             lines = row.split("\n")
             self._rows.extend(lines)
-
-        # self._rows = [
-        #     self._msg.body[i : i + message_body_width]
-        #     for i in range(0, len(self._msg.body), message_body_width)
-        # ]
 
     def get_height(self):
         return len(self._get_rows()) + (1 if self._is_channel_message else 0)
@@ -301,6 +289,7 @@ class ChatUI(object):
         self._selected_thread_index = None
         self.exit_requested = False
         self._toplevel_messages = []
+        self._offset_from_bottom = 0
 
         self.stdscr = None
         self.editwin = None
@@ -313,7 +302,6 @@ class ChatUI(object):
         self.window_height = -1
         self.title = ""
         self.prompt = ""
-        # self.keybinding_labels = ""
 
         self.title_height = 1
 
@@ -478,8 +466,6 @@ class ChatUI(object):
         self.draw_prompt()
         self.stdscr.refresh()
 
-        # self.pad = curses.newpad(100, self.window_width)
-
         self.draw_messages()
 
         self.refresh_display()
@@ -576,6 +562,16 @@ class ChatUI(object):
             self.refresh_display()
             self.refresh_display()
             handled = True
+        elif k == "CTL_PAD8":  # ^Up
+            self._offset_from_bottom += 1
+            self.draw_messages()
+            self.refresh_display()
+            handled = True
+        elif k == "CTL_PAD2":  # ^Down
+            self._offset_from_bottom -= 1
+            self.draw_messages()
+            self.refresh_display()
+            handled = True
 
         if not handled and self._in_compose_mode():
             # If we're in the channel root and we're not in compose mode,
@@ -637,14 +633,10 @@ class ChatUI(object):
     def start(self):
         curses.wrapper(ChatUI.main, self)
 
-        # return self._selected_chat_message
-
     def refresh_display(self):
         caret_x, caret_y = self._edit_box.get_caret_xy()
         new_cursor_row = self.msg_box_origin_row + caret_y
         new_cursor_col = self.msg_box_origin_col + caret_x
-        # msg_box_origin_col
-        # editwin.move(0, len(input_line))
         self.stdscr.move(new_cursor_row, new_cursor_col)
 
         self.stdscr.refresh()
@@ -736,9 +728,14 @@ class ChatUI(object):
         pad_view_height = self.chat_history_height
         pad_view_top = self._pad_height - pad_view_height
 
-        for mb in message_boxes:
+        total_message_height = sum([mb.get_height() for mb in message_boxes], 0)
+        if total_message_height < pad_view_height or (self._offset_from_bottom < 0):
+            self._offset_from_bottom = 0
+        elif self._offset_from_bottom >= len(message_boxes):
+            self._offset_from_bottom = len(message_boxes)-1
+
+        for mb in message_boxes[self._offset_from_bottom:]:
             h = mb.get_height()
-            # print(f"cb, h:{current_bottom}, {h}")
             mb.draw(self.pad, current_bottom - h)
             current_bottom -= h
             if current_bottom < pad_view_top:
