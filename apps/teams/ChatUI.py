@@ -410,7 +410,6 @@ class ChatUI(object):
 
         self._pad_height = self.chat_history_height + 100
         self.pad = curses.newpad(self._pad_height, self.window_width)
-        print(f"{self._pad_height}")
 
     def draw_titlebar(self):
         self.stdscr.addstr(0, 0, self.title, curses.color_pair(ChatUI.TITLE_COLOR))
@@ -723,8 +722,6 @@ class ChatUI(object):
 
     def _draw_channels_threads(self):
         self._toplevel_messages = []
-        curr_row = 0
-        curr_msg_index = 0
 
         newest_messages = self._channel.messages.order_by(
             ChatMessage.created_date_time.desc()
@@ -796,14 +793,35 @@ class ChatUI(object):
         #     #     print(f"\t@{reply.sender.display_name}: {reply.body}")
 
     def _draw_thread_message(self):
-        curr_row = 0
-        msg = self._root_message
+        # curr_row = 0
+        # msg = self._root_message
 
-        curr_row += self._draw_single_message(msg, 0, curr_row)
+        # curr_row += self._draw_single_message(msg, 0, curr_row)
 
-        replies = msg.replies.all()
-        for reply in replies:
-            curr_row += self._draw_single_message(reply, 2, curr_row)
+        # replies = msg.replies.all()
+        # for reply in replies:
+        #     curr_row += self._draw_single_message(reply, 2, curr_row)
+
+
+        message_boxes = [
+            MessageTextBox.create_chat_message(
+                msg, 2, self.window_width
+            )
+            for i, msg in enumerate(self._root_message.replies.all())
+        ]
+        message_boxes.append(MessageTextBox.create_chat_message(self._root_message, 0, self.window_width))
+
+        current_bottom = self._pad_height
+        pad_view_height = self.chat_history_height
+        pad_view_top = self._pad_height - pad_view_height
+
+        for mb in message_boxes:
+            h = mb.get_height()
+            # print(f"cb, h:{current_bottom}, {h}")
+            mb.draw(self.pad, current_bottom - h)
+            current_bottom -= h
+            if current_bottom < pad_view_top:
+                break
 
     def _draw_single_message(self, msg, indent=0, initial_row=0):
         msg_box = MessageTextBox.create_chat_message(msg, indent, self.window_width)

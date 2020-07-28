@@ -70,6 +70,7 @@ class TeamChatCommand(BaseCommand):
 
         # print(f"{matched_team.graph_id}")
         # print(f"{matched_channel.graph_id}")
+        print(f"opening channel {matched_team.display_name}/{matched_channel.display_name}")
 
         ui = ChatUI.create_for_channel(instance, matched_channel)
         ui.start()

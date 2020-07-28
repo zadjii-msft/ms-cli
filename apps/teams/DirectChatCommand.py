@@ -67,7 +67,7 @@ class DirectChatCommand(BaseCommand):
         if not args.no_cache:
             TeamsCacheCommand.cache_all_messages(instance)
 
-        print(f"chatting with {username}")
+        print(f"chatting with {matched_user.display_name}")
 
         target_thread = None
 
