@@ -6,8 +6,17 @@ from datetime import datetime
 from models.User import User
 from models.ChatThread import ChatThread
 from common.utils import *
-
+from html.parser import HTMLParser
 __author__ = "zadjii"
+
+
+class HTMLFilter(HTMLParser):
+    text = ""
+    # def __init__(self):
+    #     super(HTMLFilter).__init__()
+    #     self.text = ""
+    def handle_data(self, data):
+        self.text += data
 
 
 class ChatMessage(base):
@@ -21,6 +30,7 @@ class ChatMessage(base):
     # From Graph API:
     graph_id = Column(String)
     body = Column(String)
+    html_body = Column(String)
     thread_id = Column(Integer, ForeignKey("chatthread.id"))
     from_guid = Column(String, ForeignKey("user.guid"))
     created_date_time = Column(DateTime)
@@ -59,7 +69,14 @@ class ChatMessage(base):
         result.last_modified_date_time = datetime_from_string(
             json_blob["lastModifiedDateTime"]
         )
-        result.body = json_blob["body"]["content"]
+        if json_blob["body"]["contentType"] == 'html':
+            result.html_body = json_blob["body"]["content"]
+            f = HTMLFilter()
+            f.feed(result.html_body)
+            result.body = f.text
+        else:
+            result.body = json_blob["body"]["content"]
+
         result.from_guid = json_blob["from"]["user"]["id"]
 
         result.reply_to_id = json_blob["replyToId"]

@@ -8,6 +8,8 @@ from models.ChatMessage import ChatMessage, get_or_create_message_model
 from models.ChatThread import ChatThread, get_or_create_thread_model
 from argparse import Namespace
 from sqlalchemy import func, distinct
+from apps.teams.ListTeamsCommand import ListTeamsCommand
+from apps.teams.TeamsTeamCommand import TeamsTeamCommand
 from apps.teams.TeamsCacheCommand import TeamsCacheCommand
 from apps.teams.ChatUI import ChatUI
 import curses
@@ -54,12 +56,18 @@ class TeamChatCommand(BaseCommand):
         team_name = parts[0]
         channel_name = parts[1]
 
+        if not args.no_cache:
+            ListTeamsCommand.cache_all_teams(instance)
+
         teams = db.session.query(Team)
         teams_like = teams.filter(Team.display_name.ilike(f"%{team_name}%"))
 
         matched_team = teams_like.first()
         if matched_team is None:
             return Error(f"Could not find the team:{team_name}")
+
+        if not args.no_cache:
+            TeamsTeamCommand.cache_all_channels(instance, matched_team)
 
         channels_like = matched_team.channels.filter(
             Channel.display_name.ilike(f"%{channel_name}%")
@@ -68,8 +76,11 @@ class TeamChatCommand(BaseCommand):
         if matched_channel is None:
             return Error(f"Could not find the channel:{channel_name}")
 
+        if not args.no_cache:
+            TeamsTeamCommand.cache_messages_in_channel(instance, matched_channel)
+
         print(
-            f"opening channel {matched_team.display_name}/{matched_channel.display_name}"
+            f"opening channel {matched_team.display_name}/{matched_channel.display_name}..."
         )
 
         ui = ChatUI.create_for_channel(instance, matched_channel)

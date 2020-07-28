@@ -120,10 +120,16 @@ class MessageTextBox(object):
         # TODO: Right now this splits based on window width, _then_ newlines.
         # That's stupid. It should be nelwines first, then split the remaining
         # lines based on width.
-        for i in range(0, len(self._msg.body), self._message_body_width):
-            row = self._msg.body[i : i + self._message_body_width]
-            lines = row.split("\n")
-            self._rows.extend(lines)
+        # for i in range(0, len(self._msg.body), self._message_body_width):
+        #     row = self._msg.body[i : i + self._message_body_width]
+        #     lines = row.split("\n")
+        #     self._rows.extend(lines)
+        for line in self._msg.body.split('\n'):
+            rows = [
+                line[i : i + self._message_body_width]
+                for i in range(0, len(line), self._message_body_width)
+            ]
+            self._rows.extend(rows)
 
     def get_height(self):
         return len(self._get_rows()) + (1 if self._is_channel_message else 0)
