@@ -7,6 +7,7 @@ from models.User import User
 from models.ChatThread import ChatThread
 from common.utils import *
 from html.parser import HTMLParser
+
 __author__ = "zadjii"
 
 
@@ -69,7 +70,7 @@ class ChatMessage(base):
         result.last_modified_date_time = datetime_from_string(
             json_blob["lastModifiedDateTime"]
         )
-        if json_blob["body"]["contentType"] == 'html':
+        if json_blob["body"]["contentType"] == "html":
             result.html_body = json_blob["body"]["content"]
             f = HTMLFilter()
             f.feed(result.html_body)

@@ -124,7 +124,7 @@ class MessageTextBox(object):
         #     row = self._msg.body[i : i + self._message_body_width]
         #     lines = row.split("\n")
         #     self._rows.extend(lines)
-        for line in self._msg.body.split('\n'):
+        for line in self._msg.body.split("\n"):
             rows = [
                 line[i : i + self._message_body_width]
                 for i in range(0, len(line), self._message_body_width)
@@ -331,6 +331,7 @@ class ChatUI(object):
         self._mode = ChatUI.CHANNEL_ROOT
         self._team = channel.team
         self._root_message = None
+        self._composing_new_thread = False
         self._toplevel_messages = []
         self._channel = channel
         self._selected_thread_index = 0
@@ -344,6 +345,7 @@ class ChatUI(object):
         self._selected_thread_index = None
         self._offset_from_bottom = 0
         self._redraw_everything()
+        self._composing_new_thread = False
 
     def _redraw_everything(self):
         self.setup_curses()
@@ -737,7 +739,11 @@ class ChatUI(object):
     def _draw_thread_message(self):
         message_boxes = [
             MessageTextBox.create_chat_message(msg, 2, self.window_width)
-            for i, msg in enumerate(self._root_message.replies.all())
+            for i, msg in enumerate(
+                self._root_message.replies.order_by(
+                    ChatMessage.created_date_time.desc()
+                ).all()
+            )
         ]
         message_boxes.append(
             MessageTextBox.create_chat_message(self._root_message, 0, self.window_width)
