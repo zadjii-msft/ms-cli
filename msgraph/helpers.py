@@ -272,6 +272,7 @@ def get_user(session, *, user_id="me"):
     response.raise_for_status()
     return response.json()
 
+
 def get_mail(session, *, user_id="me", mailid):
     """Get a mail message
 
@@ -283,14 +284,22 @@ def get_mail(session, *, user_id="me", mailid):
 
     # MAIL_QUERY = 'https://graph.microsoft.com/v1.0/me/messages/id'
 
-    endpoint = f"me/messages/{mailid}" if user_id == "me" else f"users/{user_id}/messages/{mailid}"
+    endpoint = (
+        f"me/messages/{mailid}"
+        if user_id == "me"
+        else f"users/{user_id}/messages/{mailid}"
+    )
 
-    response = session.get(api_endpoint(endpoint), headers={"Prefer":"outlook.body-content-type=\"text\""})
+    response = session.get(
+        api_endpoint(endpoint), headers={"Prefer": 'outlook.body-content-type="text"'}
+    )
     response.raise_for_status()
     return response.json()
 
 
-def list_mail(session, *, user_id="me", folder=None, search=None, filter=None, select=None):
+def list_mail(
+    session, *, user_id="me", folder=None, search=None, filter=None, select=None
+):
     """List email from current user.
 
     session      = requests.Session() instance with Graph access token
@@ -307,40 +316,45 @@ def list_mail(session, *, user_id="me", folder=None, search=None, filter=None, s
     if not folder:
         endpoint = "me/messages" if user_id == "me" else f"users/{user_id}/messages"
     else:
-        endpoint = f"me/mailFolders/{folder}/messages" if user_id == "me" else f"users/{user_id}/mailFolders/{folder}/messages"
+        endpoint = (
+            f"me/mailFolders/{folder}/messages"
+            if user_id == "me"
+            else f"users/{user_id}/mailFolders/{folder}/messages"
+        )
 
     argsApplied = False
 
     if search:
         if not argsApplied:
-            endpoint += '?'
+            endpoint += "?"
             argsApplied = True
         else:
-            endpoint += '&'
-            
+            endpoint += "&"
+
         endpoint += '$search="%s"' % search
 
     if filter:
         if not argsApplied:
-            endpoint += '?'
+            endpoint += "?"
             argsApplied = True
         else:
-            endpoint += '&'
-            
+            endpoint += "&"
+
         endpoint += '$filter="%s"' % filter
 
     if select:
         if not argsApplied:
-            endpoint += '?'
+            endpoint += "?"
             argsApplied = True
         else:
-            endpoint += '&'
-            
+            endpoint += "&"
+
         endpoint += f"$select={select}"
 
     response = session.get(api_endpoint(endpoint))
     response.raise_for_status()
     return response.json()
+
 
 def list_mail_folders(session, *, user_id="me"):
     """List mail folders from current user.

@@ -9,9 +9,7 @@ from tabulate import tabulate
 
 class MailReadCommand(BaseCommand):
     def add_parser(self, subparsers):
-        list_cmd = subparsers.add_parser(
-            "read", description="Read a message"
-        )
+        list_cmd = subparsers.add_parser("read", description="Read a message")
 
         list_cmd.add_argument("id")
 
@@ -28,7 +26,7 @@ class MailReadCommand(BaseCommand):
         current_user = rd.data
 
         graph = instance.get_graph_session()
-        
+
         mail = helpers.get_mail(graph, mailid=args.id)
 
         model = MailItem.from_json(mail)

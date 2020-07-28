@@ -9,9 +9,7 @@ from tabulate import tabulate
 
 class MailListCommand(BaseCommand):
     def add_parser(self, subparsers):
-        list_cmd = subparsers.add_parser(
-            "ls", description="List messages"
-        )
+        list_cmd = subparsers.add_parser("ls", description="List messages")
 
         list_cmd.add_argument("folder", nargs=argparse.REMAINDER)
 
@@ -28,7 +26,7 @@ class MailListCommand(BaseCommand):
         current_user = rd.data
 
         graph = instance.get_graph_session()
-        
+
         if args.folder:
             if len(args.folder) > 1:
                 return Error("Too many folders")
@@ -36,7 +34,9 @@ class MailListCommand(BaseCommand):
         else:
             folder = None
 
-        mail = helpers.list_mail(graph, folder=folder, select="subject,sender,receivedDateTime")
+        mail = helpers.list_mail(
+            graph, folder=folder, select="subject,sender,receivedDateTime"
+        )
 
         items = []
         for item in mail["value"]:

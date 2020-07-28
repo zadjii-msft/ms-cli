@@ -9,9 +9,7 @@ from tabulate import tabulate
 
 class MailFoldersCommand(BaseCommand):
     def add_parser(self, subparsers):
-        list_cmd = subparsers.add_parser(
-            "folders", description="List folders"
-        )
+        list_cmd = subparsers.add_parser("folders", description="List folders")
 
         return list_cmd
 
@@ -26,7 +24,7 @@ class MailFoldersCommand(BaseCommand):
         current_user = rd.data
 
         graph = instance.get_graph_session()
-        
+
         folders = helpers.list_mail_folders(graph)
 
         items = []
@@ -39,6 +37,17 @@ class MailFoldersCommand(BaseCommand):
             q = [i.name, i.children, i.unread, i.total, i.id]
             table.append(q)
 
-        print(tabulate(table, headers=["Name", "# of Children", "# of Unread Msg", "# of Msg (total)", "ID"]))
+        print(
+            tabulate(
+                table,
+                headers=[
+                    "Name",
+                    "# of Children",
+                    "# of Unread Msg",
+                    "# of Msg (total)",
+                    "ID",
+                ],
+            )
+        )
 
         return Success()

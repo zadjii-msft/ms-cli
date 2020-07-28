@@ -6,6 +6,7 @@ from apps.mail.MailListCommand import MailListCommand
 from apps.mail.MailFoldersCommand import MailFoldersCommand
 from apps.mail.MailReadCommand import MailReadCommand
 
+
 class MailCommand(BaseCommand):
 
     _cmd = None
