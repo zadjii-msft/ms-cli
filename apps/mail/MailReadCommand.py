@@ -33,8 +33,9 @@ class MailReadCommand(BaseCommand):
 
         model = MailItem.from_json(mail)
 
-        print(model.sender)
-        print(model.when)
+        print(f"From: {model.sender}")
+        print(f"Received: {model.when}")
+        print("-------------------")
         print(model.body)
 
         return Success()
