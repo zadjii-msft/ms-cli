@@ -166,7 +166,6 @@ def ms_main(argv):
 
     enable_vt_support()
 
-
     parser = build_arg_parser()
     args = parser.parse_args()
 
