@@ -15,6 +15,94 @@ from time import sleep
 from msgraph import helpers
 
 
+class MessageTextBox(object):
+    def __init__(self, message, width=80):
+        self._width = width
+        self._indent = 0
+        self._msg = message
+        self._rows = None
+        self._is_selected = False
+        self._is_channel_message = False
+        self._username_prefix = ""
+        self._username = ""
+        self._username_suffix = ""
+        self._start_col = -1
+        self._message_body_width = -1
+
+    @staticmethod
+    def create_thread_root_message(message, is_selected, width=80):
+        msg_box = MessageTextBox(message, width)
+        msg_box._is_selected = is_selected
+        msg_box._is_channel_message = True
+        msg_box._indent = 1
+        msg_box._update_username_text()
+        return msg_box
+
+    @staticmethod
+    def create_chat_message(message, indent=0, width=80):
+        msg_box = MessageTextBox(message, width)
+        msg_box._indent = indent
+        msg_box._update_username_text()
+        return msg_box
+
+    def _update_username_text(self):
+        self._username_prefix = " " * self._indent
+        self._username = self._msg.sender.display_name
+        self._username_suffix = ": "
+        self._start_col = len(
+            self._username_prefix + self._username + self._username_suffix
+        )
+        self._message_body_width = self._width - self._start_col
+
+    def draw(self, pad, initial_row):
+        # username_prefix = " " * self._indent
+        # username = self._msg.sender.display_name
+        # username_suffix = ": "
+
+        pad.addstr(initial_row, 0, self._username_prefix)
+        pad.addstr(
+            initial_row,
+            self._indent,
+            self._username,
+            curses.color_pair(ChatUI.USERNAME_COLOR) + curses.A_UNDERLINE,
+        )
+        pad.addstr(
+            initial_row, self._indent + len(self._username), self._username_suffix
+        )
+        # start_col = len(username_prefix + username + username_suffix)
+
+        # message_body_width = self._width - start_col
+
+        message_rows = self._get_rows()
+
+        for row_index, row_text in enumerate(message_rows):
+            pad.addstr(initial_row + row_index, self._start_col, row_text)
+
+    def resize(self, width):
+        self._width = width
+        self._rows = None
+
+    def _get_rows(self):
+        if self._rows == None:
+            self._recalculate_rows()
+        return self._rows
+
+    def _recalculate_rows(self):
+        self._rows = []
+        for i in range(0, len(self._msg.body), self._message_body_width):
+            row = self._msg.body[i : i + self._message_body_width]
+            lines = row.split("\n")
+            self._rows.extend(lines)
+
+        # self._rows = [
+        #     self._msg.body[i : i + message_body_width]
+        #     for i in range(0, len(self._msg.body), message_body_width)
+        # ]
+
+    def get_height(self):
+        return len(self._get_rows())
+
+
 class EditBox(object):
     def __init__(self, width, contents=""):
         self._width = width
@@ -598,11 +686,11 @@ class ChatUI(object):
                 else 0
             )
             if num_replies == 0:
-                self.pad.addstr(curr_row, 3, f"↳(no replies yet)", active_attr)
+                self.pad.addstr(curr_row, 3, f"↳ (no replies yet)", active_attr)
             elif num_replies == 1:
-                self.pad.addstr(curr_row, 3, f"↳1 reply", active_attr)
+                self.pad.addstr(curr_row, 3, f"↳ 1 reply", active_attr)
             else:
-                self.pad.addstr(curr_row, 3, f"↳{num_replies} replies", active_attr)
+                self.pad.addstr(curr_row, 3, f"↳ {num_replies} replies", active_attr)
             curr_row += 1
 
             curr_msg_index += 1
@@ -623,31 +711,34 @@ class ChatUI(object):
             curr_row += self._draw_single_message(reply, 2, curr_row)
 
     def _draw_single_message(self, msg, indent=0, initial_row=0):
-        username_prefix = " " * indent
-        username = msg.sender.display_name
-        username_suffix = ": "
+        msg_box = MessageTextBox.create_chat_message(msg, indent, self.window_width)
+        msg_box.draw(self.pad, initial_row)
+        return msg_box.get_height()
+        # username_prefix = " " * indent
+        # username = msg.sender.display_name
+        # username_suffix = ": "
 
-        self.pad.addstr(initial_row, 0, username_prefix)
-        self.pad.addstr(
-            initial_row,
-            indent,
-            username,
-            curses.color_pair(ChatUI.USERNAME_COLOR) + curses.A_UNDERLINE,
-        )
-        self.pad.addstr(initial_row, indent + len(username), username_suffix)
-        start_col = len(username_prefix + username + username_suffix)
+        # self.pad.addstr(initial_row, 0, username_prefix)
+        # self.pad.addstr(
+        #     initial_row,
+        #     indent,
+        #     username,
+        #     curses.color_pair(ChatUI.USERNAME_COLOR) + curses.A_UNDERLINE,
+        # )
+        # self.pad.addstr(initial_row, indent + len(username), username_suffix)
+        # start_col = len(username_prefix + username + username_suffix)
 
-        message_body_width = self.window_width - start_col
+        # message_body_width = self.window_width - start_col
 
-        message_rows = [
-            msg.body[i : i + message_body_width]
-            for i in range(0, len(msg.body), message_body_width)
-        ]
+        # message_rows = [
+        #     msg.body[i : i + message_body_width]
+        #     for i in range(0, len(msg.body), message_body_width)
+        # ]
 
-        for row_index, row_text in enumerate(message_rows):
-            self.pad.addstr(initial_row + row_index, start_col, row_text)
+        # for row_index, row_text in enumerate(message_rows):
+        #     self.pad.addstr(initial_row + row_index, start_col, row_text)
 
-        return len(message_rows)
+        # return len(message_rows)
 
     def send_message(self, message):
         if self._mode == ChatUI.DIRECT_MESSAGE:
