@@ -47,7 +47,7 @@ class TeamChatCommand(BaseCommand):
             return Error("no logged in user")
         current_user = rd.data
 
-        if not "/" in channel_arg:
+        if not channel_arg or not "/" in channel_arg:
             return Error('Channel should be provided in "team/channel" format')
 
         parts = channel_arg.split("/")

@@ -1,9 +1,13 @@
 from common.BaseCommand import BaseCommand
 from common.ResultAndData import *
+from common.Submenu import do_common_interactive_with_args
 from argparse import Namespace
 
 
 class MailCommand(BaseCommand):
+
+    _cmd = None
+
     def add_parser(self, subparsers):
         mail_cmd = subparsers.add_parser(
             "mail", description="This is the mail application"
@@ -20,10 +24,9 @@ class MailCommand(BaseCommand):
             help="Which mail command to run",
         )
 
+        self._cmd = mail_cmd
         return mail_cmd
 
     def do_command_with_args(self, instance, args):
         # type: (Instance, Namespace) -> ResultAndData
-
-        print("This is the mail command")
-        return Error()
+        return do_common_interactive_with_args("mail", self._cmd, instance, args)
