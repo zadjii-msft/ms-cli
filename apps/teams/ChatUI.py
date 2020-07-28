@@ -286,7 +286,9 @@ class ChatUI(object):
         self.message_box_width = -1
         self.msg_box_origin_row = -1
         self.msg_box_origin_col = -1
+
         self.chat_history_height = -1
+        self._pad_height = -1
 
         self.keybinding_labels_height = -1
         self.keybinding_labels_width = -1
@@ -371,6 +373,10 @@ class ChatUI(object):
             self.message_box_height + self.title_height + self.keybinding_labels_height
         )
 
+        self._pad_height = self.chat_history_height + 100
+        self.pad = curses.newpad(self._pad_height, self.window_width)
+        print(f"{self._pad_height}")
+
     def draw_titlebar(self):
         self.stdscr.addstr(0, 0, self.title, curses.color_pair(ChatUI.TITLE_COLOR))
 
@@ -438,7 +444,7 @@ class ChatUI(object):
         self.draw_prompt()
         self.stdscr.refresh()
 
-        self.pad = curses.newpad(100, self.window_width)
+        # self.pad = curses.newpad(100, self.window_width)
 
         self.draw_messages()
 
@@ -617,7 +623,13 @@ class ChatUI(object):
         # (20, 75) : coordinate of lower-right corner of window area to be
         #          : filled with pad content.
         # pad.refresh( 0,0, 5,5, 20,75)
-        self.pad.refresh(0, 0, 1, 0, self.chat_history_height, self.window_width)
+
+        pad_view_height = self.chat_history_height
+        pad_view_top = self._pad_height - pad_view_height
+
+        self.pad.refresh(
+            pad_view_top, 0, 1, 0, self.chat_history_height, self.window_width
+        )
 
     def draw_messages(self):
         self.pad.clear()
@@ -631,16 +643,14 @@ class ChatUI(object):
             self._draw_thread_message()
 
     def _draw_direct_messages(self):
-        messages = self.thread.messages.order_by(ChatMessage.created_date_time).all()
-        curr_row = 0
-        for msg in messages:
-            curr_row += self._draw_single_message(msg, 0, curr_row)
-            # username = f"{msg.sender.display_name}: "
-            # self.pad.addstr(
-            #     curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
-            # )
-            # self.pad.addstr(curr_row, len(username), f"{msg.body}")
-            # curr_row += 1
+        # messages = self.thread.messages.order_by(ChatMessage.created_date_time).all()
+        messages = self.thread.messages.order_by(
+            ChatMessage.created_date_time.desc()
+        ).all()
+
+        # Hey future self, this can be used to skip some number of messages:
+        # messages = self.thread.messages.order_by(ChatMessage.created_date_time.desc()).offset(1).all()
+
         if len(messages) == 0:
             self.pad.addstr(
                 curr_row,
@@ -648,6 +658,33 @@ class ChatUI(object):
                 f"starting a new conversation with {self.other_user.display_name}",
             )
             curr_row += 1
+            return
+
+        message_boxes = [
+            MessageTextBox.create_chat_message(msg, 0, self.window_width)
+            for msg in messages
+        ]
+        current_bottom = self._pad_height
+        pad_view_height = self.chat_history_height
+        pad_view_top = self._pad_height - pad_view_height
+
+        for mb in message_boxes:
+            h = mb.get_height()
+            # print(f"cb, h:{current_bottom}, {h}")
+            mb.draw(self.pad, current_bottom - h)
+            current_bottom -= h
+            if current_bottom < pad_view_top:
+                break
+
+        # curr_row = 0
+        # for msg in messages:
+        #     curr_row += self._draw_single_message(msg, 0, curr_row)
+        #     # username = f"{msg.sender.display_name}: "
+        #     # self.pad.addstr(
+        #     #     curr_row, 0, username, curses.color_pair(ChatUI.USERNAME_COLOR)
+        #     # )
+        #     # self.pad.addstr(curr_row, len(username), f"{msg.body}")
+        #     # curr_row += 1
 
     def _draw_channels_threads(self):
         self._toplevel_messages = []
