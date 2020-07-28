@@ -85,6 +85,14 @@ class EditBox(object):
         self._caret_position += 1
         self._clamp_caret()
 
+    def move_cursor_home(self):
+        self._caret_position = 0
+        self._clamp_caret()
+
+    def move_cursor_end(self):
+        self._caret_position = len(self._buffer)
+        self._clamp_caret()
+
     def _clamp_caret(self):
         if self._caret_position < 0:
             self._caret_position = 0
@@ -411,6 +419,7 @@ class ChatUI(object):
         return handled
 
     def _base_handle_key(self, k):
+        handled = False
         if k == "\x03":
             self.exit_requested = True
         elif k == "CTL_ENTER":  # normal enter is '\n'
@@ -423,13 +432,40 @@ class ChatUI(object):
             self.draw_messages()
             self.refresh_display()
             self.refresh_display()
-        elif k == "\n":
-            pass
+            handled = True
         elif k == "\x12":  # ^R
             self._fetch_new_messages()
             self.draw_messages()
             self.refresh_display()
             self.refresh_display()
+            handled = True
+
+        if not handled and self._in_compose_mode():
+            # If we're in the channel root and we're not in compose mode,
+            # ignore the character
+            self._handle_text_input(k)
+
+    def _in_compose_mode(self):
+        return not (
+            self._mode == ChatUI.CHANNEL_ROOT and not self._composing_new_thread
+        )
+
+    def _handle_text_input(self, k):
+        if k == "KEY_A1":  # Home??
+            self._edit_box.move_cursor_home()
+            self.draw_edit_box()
+            self.refresh_display()
+
+        elif k == "KEY_C1":  # End??
+            self._edit_box.move_cursor_end()
+            self.draw_edit_box()
+            self.refresh_display()
+
+        elif k == "KEY_A2" or k == "KEY_UP":  # UP
+            pass
+        elif k == "KEY_C2" or k == "KEY_DOWN":  # DOWN
+            pass
+
         elif k == "KEY_B1" or k == "KEY_LEFT":
             self._edit_box.move_cursor_left()
             self.draw_edit_box()
@@ -441,35 +477,25 @@ class ChatUI(object):
             self.refresh_display()
 
         elif k == "PADSTOP":  # Delete? I suppose
-            if self._mode == ChatUI.CHANNEL_ROOT and not self._composing_new_thread:
-                # If we're in the channel root and we're not in compose mode,
-                # ignore the character
-                pass
-            else:
-                self._edit_box.delete_character()
-                self.draw_edit_box()
-                self.refresh_display()
-                self.refresh_display()
+            self._edit_box.delete_character()
+            self.draw_edit_box()
+            self.refresh_display()
+            self.refresh_display()
+
         elif k == "\x08":
-            if self._mode == ChatUI.CHANNEL_ROOT and not self._composing_new_thread:
-                # If we're in the channel root and we're not in compose mode,
-                # ignore the character
-                pass
-            else:
-                self._edit_box.backspace_character()
-                self.draw_edit_box()
-                self.refresh_display()
-                self.refresh_display()
+            self._edit_box.backspace_character()
+            self.draw_edit_box()
+            self.refresh_display()
+            self.refresh_display()
+
+        elif k == "\n":
+            pass
+
         else:
-            if self._mode == ChatUI.CHANNEL_ROOT and not self._composing_new_thread:
-                # If we're in the channel root and we're not in compose mode,
-                # ignore the character
-                pass
-            else:
-                self._edit_box.insert_character(k)
-                self.draw_edit_box()
-                self.refresh_display()
-                self.refresh_display()
+            self._edit_box.insert_character(k)
+            self.draw_edit_box()
+            self.refresh_display()
+            self.refresh_display()
 
     def start(self):
         curses.wrapper(ChatUI.main, self)
