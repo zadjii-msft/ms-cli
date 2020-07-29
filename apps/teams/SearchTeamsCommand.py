@@ -19,10 +19,13 @@ class SearchTeamsCommand(BaseCommand):
     def add_parser(self, subparsers):
         search_cmd = subparsers.add_parser("search", description="Search your messages")
 
-        search_cmd.add_argument("query", help="The string to search for")
+        search_cmd.add_argument(
+            "query", help="The string to search for. Pass '*' to get all the messages."
+        )
 
         search_cmd.add_argument(
-            "--from-user",
+            "--from",
+            dest="from_user",
             help="If provided, search for messages only from the given user",
             default=None,
         )
@@ -72,8 +75,12 @@ class SearchTeamsCommand(BaseCommand):
         all_messages = db.session.query(ChatMessage).order_by(
             ChatMessage.created_date_time
         )
-        query_string = f"%{args.query}%"
-        results = all_messages.filter(ChatMessage.body.ilike(query_string))
+        if args.query == "*":
+            # special case, just return all the results
+            results = all_messages
+        else:
+            query_string = f"%{args.query}%"
+            results = all_messages.filter(ChatMessage.body.ilike(query_string))
 
         if from_user:
             results = results.filter(ChatMessage.from_guid == from_user.guid)
@@ -92,3 +99,5 @@ class SearchTeamsCommand(BaseCommand):
                 f'{background_format}id: {msg.graph_id} - {msg.created_date_time.strftime("%c")}\x1b[K\x1b[m'
             )
             print(f"\x1b[4;2m{msg.sender.display_name}:\x1b[24;22;39m {msg.body}\x1b[m")
+
+        return Success()

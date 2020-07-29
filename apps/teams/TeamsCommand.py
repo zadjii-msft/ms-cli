@@ -8,6 +8,7 @@ from apps.teams.ListTeamsCommand import ListTeamsCommand
 from apps.teams.TeamsTeamCommand import TeamsTeamCommand
 from apps.teams.TeamChatCommand import TeamChatCommand
 from apps.teams.SearchTeamsCommand import SearchTeamsCommand
+from apps.teams.TeamsMessage import TeamsMessage
 
 
 class TeamsCommand(BaseCommand):
@@ -35,6 +36,7 @@ class TeamsCommand(BaseCommand):
         TeamsTeamCommand(subparsers)
         TeamChatCommand(subparsers)
         SearchTeamsCommand(subparsers)
+        TeamsMessage(subparsers)
         self._cmd = teams_cmd
         return teams_cmd
 

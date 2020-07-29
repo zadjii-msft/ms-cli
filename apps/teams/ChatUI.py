@@ -256,12 +256,12 @@ class ChatUI(object):
     CHANNEL_MESSAGE = 3  # A single thread within a channel in a team
 
     @staticmethod
-    def create_for_direct_message(instance, thread, other_user):
+    def create_for_direct_message(instance, thread, thread_name):
         # type: (Instance, ChatThread, User) -> ChatUI
         ui = ChatUI(instance)
         ui._mode = ChatUI.DIRECT_MESSAGE
         ui.thread = thread
-        ui.other_user = other_user
+        ui.thread_name = thread_name
         return ui
 
     @staticmethod
@@ -290,7 +290,7 @@ class ChatUI(object):
         self._mode = ChatUI.INVALID
         self.instance = instance
         self.thread = None
-        self.other_user = None
+        self.thread_name = None
         self.current_user = instance.get_current_user().data
         self._team = None
         self._channel = None
@@ -356,6 +356,36 @@ class ChatUI(object):
         self.draw_messages()
         self.refresh_display()
         self.refresh_display()
+
+    def skip_to_message(self, msg):
+        # type: (ChatMessage) -> None
+        """ Move the viewport immediately to another message within this thread."""
+        if self._mode == ChatUI.DIRECT_MESSAGE:
+            messages = self.thread.messages.order_by(
+                ChatMessage.created_date_time.desc()
+            ).all()
+        elif self._mode == ChatUI.GROUP_THREAD:
+            messages = self.thread.messages.order_by(
+                ChatMessage.created_date_time.desc()
+            ).all()
+        elif self._mode == ChatUI.CHANNEL_ROOT:
+            print(
+                f"This is a programming error - we shouldn't be skipping to messages in the channel root view."
+            )
+            return
+        elif self._mode == ChatUI.CHANNEL_MESSAGE:
+            messages = [self._root_message]
+            messages.extend(
+                self._root_message.replies.order_by(
+                    ChatMessage.created_date_time.desc()
+                ).all()
+            )
+
+        for i, other in enumerate(messages):
+            if other.graph_id == msg.graph_id:
+                # print(f'Found message at offset {i}')
+                self._offset_from_bottom = i
+                break
 
     def setup_curses(self):
         curses.use_default_colors()
@@ -702,9 +732,7 @@ class ChatUI(object):
 
         if len(messages) == 0:
             self.pad.addstr(
-                curr_row,
-                0,
-                f"starting a new conversation with {self.other_user.display_name}",
+                curr_row, 0, f"starting a new conversation with {self.thread_name}",
             )
             curr_row += 1
             return
@@ -757,10 +785,13 @@ class ChatUI(object):
         pad_view_top = self._pad_height - pad_view_height
 
         total_message_height = sum([mb.get_height() for mb in message_boxes], 0)
-        if total_message_height < pad_view_height or (self._offset_from_bottom < 0):
+        # print(f'old offset:{self._offset_from_bottom}')
+        if self._offset_from_bottom < 0:
+            # if total_message_height < pad_view_height or (self._offset_from_bottom < 0):
             self._offset_from_bottom = 0
         elif self._offset_from_bottom >= len(message_boxes):
             self._offset_from_bottom = len(message_boxes) - 1
+        # print(f'new offset:{self._offset_from_bottom}')
 
         for mb in message_boxes[self._offset_from_bottom :]:
             h = mb.get_height()
@@ -830,7 +861,7 @@ class ChatUI(object):
 
     def _get_raw_title(self):
         if self._mode == ChatUI.DIRECT_MESSAGE:
-            return f"chatting with {self.other_user.display_name}"
+            return f"chatting with {self.thread_name}"
         elif self._mode == ChatUI.GROUP_THREAD:
             return f"chatting with group..."
         elif self._mode == ChatUI.CHANNEL_ROOT:

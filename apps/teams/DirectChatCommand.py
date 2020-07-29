@@ -99,7 +99,7 @@ class DirectChatCommand(BaseCommand):
             return Error(f"Could not find a thread for user:{username}")
 
         chat_ui = ChatUI.create_for_direct_message(
-            instance, target_thread, matched_user
+            instance, target_thread, matched_user.display_name
         )
         chat_ui.start()
 
