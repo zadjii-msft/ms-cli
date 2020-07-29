@@ -120,11 +120,14 @@ class MessageTextBox(object):
         # Split on newlines first, then split the remaining lines based on
         # width.
         for line in self._msg.body.split("\n"):
-            rows = [
-                line[i : i + self._message_body_width]
-                for i in range(0, len(line), self._message_body_width)
-            ]
-            self._rows.extend(rows)
+            if len(line) == 0:
+                self._rows.append("")
+            else:
+                rows = [
+                    line[i : i + self._message_body_width]
+                    for i in range(0, len(line), self._message_body_width)
+                ]
+                self._rows.extend(rows)
 
     def get_height(self):
         return len(self._get_rows()) + (1 if self._is_channel_message else 0)
@@ -216,16 +219,20 @@ class EditBox(object):
 
     def get_rows(self):
         if self._rows is None:
-            buffer_for_rendering = self._buffer + ' '
+            buffer_for_rendering = self._buffer + " "
             self._rows = []
             # Split on newlines first, then split the remaining lines based on
             # width.
-            for line in buffer_for_rendering.split("\n"):
-                rows = [
-                    line[i : i + self._width]
-                    for i in range(0, len(line), self._width)
-                ]
-                self._rows.extend(rows)
+            # for line in buffer_for_rendering.split("\n"):
+            for line in buffer_for_rendering.splitlines():
+                if len(line) == 0:
+                    self._rows.append("")
+                else:
+                    rows = [
+                        line[i : i + self._width]
+                        for i in range(0, len(line), self._width)
+                    ]
+                    self._rows.extend(rows)
         return self._rows
 
     def get_height(self):
@@ -233,8 +240,10 @@ class EditBox(object):
         return len(rows)
 
     def get_caret_xy(self):
-        x = int(self._caret_position % self._width)
-        y = int(self._caret_position / self._width)
+        rows = self.get_rows()
+        y = len(rows) - 1
+        last_row = rows[y]
+        x = len(last_row) - 1
         return (x, y)
 
 
@@ -355,11 +364,17 @@ class ChatUI(object):
     def _draw_all(self):
         self.draw_titlebar()
         self.draw_keybindings()
+        self._draw_updated_textbox()
+
+    def _draw_updated_textbox(self):
+        # Manually toggling the cursor during this method seems to do nothing
+        # curses.curs_set(0)  # hide the cursor
         self.draw_prompt()
         self.draw_edit_box()
         self.draw_messages()
+        # self.refresh_display()
         self.refresh_display()
-        self.refresh_display()
+        # curses.curs_set(1)  # show the cursor
 
     def skip_to_message(self, msg):
         # type: (ChatMessage) -> None
@@ -473,11 +488,13 @@ class ChatUI(object):
         self.keybinding_labels_origin_col = 0
 
         self.chat_history_height = self.window_height - (
-            (self.message_box_height - 1) + self.title_height + self.keybinding_labels_height
+            (self.message_box_height - 1)
+            + self.title_height
+            + self.keybinding_labels_height
         )
 
         self._pad_height = self.chat_history_height + 100
-        self.pad = curses.newpad(self._pad_height, self.window_width+1)
+        self.pad = curses.newpad(self._pad_height, self.window_width + 1)
 
     def draw_titlebar(self):
         self.stdscr.addstr(0, 0, self.title, curses.color_pair(ChatUI.TITLE_COLOR))
@@ -527,7 +544,7 @@ class ChatUI(object):
         for row_index, row_text in enumerate(self._edit_box.get_rows()):
             # print(f'drawing row {row_index}')
             string_to_draw = row_text
-            if row_index == self._edit_box.get_height()-1:
+            if row_index == self._edit_box.get_height() - 1:
                 string_to_draw = string_to_draw[:-1]
             self.editwin.addstr(row_index, 0, string_to_draw)
 
@@ -692,24 +709,22 @@ class ChatUI(object):
         elif k == "PADSTOP":  # Delete? I suppose
             self._edit_box.delete_character()
             self.update_sizes()
-            self._draw_all()
-            # MIKE: Can we be clever and not draw all?
+            self._draw_updated_textbox()
 
         elif k == "\x08":
             self._edit_box.backspace_character()
             self.update_sizes()
-            self._draw_all()
+            self._draw_updated_textbox()
 
         elif k == "\n":
-            pass
+            self._edit_box.insert_character(k)
+            self.update_sizes()
+            self._draw_updated_textbox()
 
         else:
             self._edit_box.insert_character(k)
-            # self.draw_edit_box()
-            # self.refresh_display()
-            # self.refresh_display()
             self.update_sizes()
-            self._draw_all()
+            self._draw_updated_textbox()
 
     def start(self):
         curses.wrapper(ChatUI.main, self)
