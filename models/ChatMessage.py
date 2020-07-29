@@ -118,9 +118,7 @@ def get_or_create_message_model(db, msg_json):
         db.session.add(msg_model)
         db.session.commit()
     else:
-        last_modified_from_json = datetime_from_string(
-            msg_json["lastModifiedDateTime"]
-        )
+        last_modified_from_json = datetime_from_string(msg_json["lastModifiedDateTime"])
         if last_modified_from_json is not None:
             msg_model.last_modified_date_time = last_modified_from_json
             print(f'updated lmdt to {last_modified_from_json.strftime("%c")}')

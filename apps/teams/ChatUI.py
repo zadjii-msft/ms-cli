@@ -785,10 +785,27 @@ class ChatUI(object):
         pad_view_top = self._pad_height - pad_view_height
 
         total_message_height = sum([mb.get_height() for mb in message_boxes], 0)
-        if self._offset_from_bottom < 0:
-            self._offset_from_bottom = 0
-        elif self._offset_from_bottom >= len(message_boxes):
-            self._offset_from_bottom = len(message_boxes) - 1
+
+        self._clamp_offset(len(message_boxes))
+
+        # If we're in the channel root view, then make sure the selected thread is always visible
+        if self._mode == ChatUI.CHANNEL_ROOT:
+            if self._offset_from_bottom < self._selected_thread_index:
+                # this witchcraft will get the height of all the messages from
+                # the offset message to the one above the selected thread, and
+                # if that's taller than the viewport, then mode the offset
+                # thread up one, to make the selected thread visible.
+                distance = sum(
+                    mb.get_height()
+                    for mb in message_boxes[
+                        self._offset_from_bottom : self._selected_thread_index + 1
+                    ]
+                )
+                if distance > pad_view_height:
+                    self._offset_from_bottom += 1
+            elif self._offset_from_bottom > self._selected_thread_index:
+                self._offset_from_bottom = self._selected_thread_index
+        self._clamp_offset(len(message_boxes))
 
         for mb in message_boxes[self._offset_from_bottom :]:
             h = mb.get_height()
@@ -796,6 +813,12 @@ class ChatUI(object):
             current_bottom -= h
             if current_bottom < pad_view_top:
                 break
+
+    def _clamp_offset(self, max_val):
+        if self._offset_from_bottom < 0:
+            self._offset_from_bottom = 0
+        elif self._offset_from_bottom >= max_val:
+            self._offset_from_bottom = max_val - 1
 
     def send_message(self, message):
         if self._mode == ChatUI.DIRECT_MESSAGE:

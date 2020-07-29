@@ -59,7 +59,7 @@ class TeamsTeamCommand(BaseCommand):
         response = helpers.list_channel_messages_since_time(
             graph, team_id=team.graph_id, channel_id=channel.graph_id, when=updated_time
         )
-        if len(response['value']) > 0:
+        if len(response["value"]) > 0:
             if not quiet:
                 print(f"fetching replies...")
 
