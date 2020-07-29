@@ -6,6 +6,9 @@ import common.ParserState
 
 def do_common_interactive_with_args(modename, parser, instance, args):
     common.ParserState.doExitOnError = False
+
+    extraHelp = "Navigation commands include: 'up' or 'back' to go up one menu level and 'quit' or 'exit' to leave completely."
+
     while True:
         print(f"ms {modename}>", end=" ")
         command = input().split(" ")
@@ -15,6 +18,7 @@ def do_common_interactive_with_args(modename, parser, instance, args):
 
             if c == "help":
                 parser.print_apps_help()
+                print(extraHelp)
                 continue
 
             if c == "exit" or c == "quit":
@@ -40,5 +44,6 @@ def do_common_interactive_with_args(modename, parser, instance, args):
                 print("Invalid command")
         except CaughtParserError as e:
             print(e)
+            print(extraHelp)
 
     return Error()

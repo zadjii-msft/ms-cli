@@ -170,6 +170,7 @@ def ms_main(argv):
     args = parser.parse_args()
 
     if args.app == None:
+        extraHelp = "Navigation commands include: 'quit' or 'exit' to leave completely."
         common.ParserState.doExitOnError = False
         while True:
             print("ms>", end=" ")
@@ -180,6 +181,7 @@ def ms_main(argv):
 
                 if c == "help":
                     parser.print_apps_help()
+                    print(extraHelp)
                     continue
 
                 if c == "exit" or c == "quit":
@@ -202,6 +204,7 @@ def ms_main(argv):
                     print("Invalid command")
             except CaughtParserError as e:
                 print(e)
+                print(extraHelp)
 
         return
 
