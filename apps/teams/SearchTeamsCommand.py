@@ -61,12 +61,14 @@ class SearchTeamsCommand(BaseCommand):
         if len(result_msgs) == 0:
             return Error("No results found")
 
-        for msg in result_msgs:
+
+        for i, msg in enumerate(result_msgs):
             (r, c) = os.get_terminal_size()
             # print(f'\x1b[4m{" " * 32}\x1b[0m')
             # print(f'\x1b[48;2;32;31;30mid: {msg.graph_id} - {datetime_to_string(msg.created_date_time)}\x1b[K\x1b[m')
+            background_format = "\x1b[48;2;32;31;30m" if i % 2 == 0 else "\x1b[48;2;59;58;57m"
             print(
-                f'\x1b[48;2;32;31;30mid: {msg.graph_id} - {msg.created_date_time.strftime("%c")}\x1b[K\x1b[m'
+                f'{background_format}id: {msg.graph_id} - {msg.created_date_time.strftime("%c")}\x1b[K\x1b[m'
             )
             # print(f'\x1b[100mid: {msg.graph_id}\x1b[K\x1b[m')
-            print(f"\x1b[4;2m{msg.sender.display_name}:\x1b[0m {msg.body}")
+            print(f"{background_format}\x1b[4;2m{msg.sender.display_name}:\x1b[24;22;39m {msg.body}\x1b[m")
