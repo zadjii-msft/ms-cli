@@ -450,13 +450,13 @@ class ChatUI(object):
             # print(f'msg_box_y: {self.msg_box_origin_row}')
             self.msg_box_origin_col = len(self.prompt) + 1
             clear_win = curses.newwin(
-                self.message_box_height + (1 if old_height > new_height else 0),
+                self.message_box_height,
                 self.message_box_width,
                 self.msg_box_origin_row,
                 0,
             )
             clear_win.clear()
-            clear_win.addstr((1 if old_height > new_height else 0), 0, self.prompt)
+            clear_win.addstr(0, 0, self.prompt)
             clear_win.refresh()
             # self.draw_prompt()
             self.stdscr.refresh()
