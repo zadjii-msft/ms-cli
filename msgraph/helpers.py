@@ -351,7 +351,9 @@ def list_mail(
 
         endpoint += f"$select={select}"
 
-    response = session.get(api_endpoint(endpoint), headers={"Prefer": 'outlook.body-content-type="text"'})
+    response = session.get(
+        api_endpoint(endpoint), headers={"Prefer": 'outlook.body-content-type="text"'}
+    )
     response.raise_for_status()
     return response.json()
 
@@ -454,7 +456,7 @@ def create_event(session, *, user_id="me", subject, location, start, end):
         "subject": subject,
         "start": {"dateTime": startutciso, "timeZone": "UTC"},
         "end": {"dateTime": endutciso, "timeZone": "UTC"},
-        "location": {"displayName": location}
+        "location": {"displayName": location},
     }
 
     return session.post(api_endpoint(endpoint), json=body)

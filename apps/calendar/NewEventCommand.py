@@ -12,9 +12,7 @@ import parsedatetime
 
 class NewEventCommand(BaseCommand):
     def add_parser(self, subparsers):
-        list_cmd = subparsers.add_parser(
-            "new", description="Makes a new event"
-        )
+        list_cmd = subparsers.add_parser("new", description="Makes a new event")
 
         list_cmd.add_argument("event")
         list_cmd.add_argument("location")
@@ -39,7 +37,7 @@ class NewEventCommand(BaseCommand):
         starttext = " ".join(args.start)
         durationtext = args.duration
         locationtext = args.location
-        
+
         cal = parsedatetime.Calendar()
 
         start = cal.parseDT(starttext)[0]
@@ -50,11 +48,13 @@ class NewEventCommand(BaseCommand):
 
         # convert durationtext into time span
 
-        #find end time from start + duration
+        # find end time from start + duration
 
-        #call command
+        # call command
 
-        response = helpers.create_event(graph, subject=name, location=locationtext, start=start, end=end)
+        response = helpers.create_event(
+            graph, subject=name, location=locationtext, start=start, end=end
+        )
 
         print(response.reason)
 

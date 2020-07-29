@@ -33,8 +33,14 @@ class MailSendCommand(BaseCommand):
 
         msg = " ".join(args.message)
 
-        result = helpers.send_mail(graph, subject=args.subject, recipients=recipients, body=msg, content_type='text')
+        result = helpers.send_mail(
+            graph,
+            subject=args.subject,
+            recipients=recipients,
+            body=msg,
+            content_type="text",
+        )
 
         print(result.reason)
-        
+
         return Success()
