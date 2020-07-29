@@ -433,11 +433,12 @@ def list_upcoming_events(session, *, user_id="me", how_many=3):
     return response.json()
 
 
-def create_event(session, *, user_id="me", subject, start, end):
+def create_event(session, *, user_id="me", subject, location, start, end):
     """
     session = requests.Session() from an MSAL/ADAL login
     user_id = Graph id value for the user, or 'me' (default) for current user
     subject = title of calendar event
+    location = where is the event held
     start = start date/time (will attempt replace to utc if necessary)
     end = end date/time (will attempt replace to utc if necessary)
     """
@@ -453,6 +454,7 @@ def create_event(session, *, user_id="me", subject, start, end):
         "subject": subject,
         "start": {"dateTime": startutciso, "timeZone": "UTC"},
         "end": {"dateTime": endutciso, "timeZone": "UTC"},
+        "location": {"displayName": location}
     }
 
     return session.post(api_endpoint(endpoint), json=body)

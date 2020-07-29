@@ -5,6 +5,7 @@ from argparse import Namespace
 
 from apps.calendar.NextEventsCommand import NextEventsCommand
 from apps.calendar.WeekCommand import WeekCommand
+from apps.calendar.NewEventCommand import NewEventCommand
 
 
 class CalendarCommand(BaseCommand):
@@ -29,6 +30,7 @@ class CalendarCommand(BaseCommand):
 
         nextevent_cmd = NextEventsCommand(subparsers)
         week_cmd = WeekCommand(subparsers)
+        new_cmd = NewEventCommand(subparsers)
 
         self._cmd = calendar_cmd
         return calendar_cmd
