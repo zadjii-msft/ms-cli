@@ -441,7 +441,8 @@ class ChatUI(object):
         self.message_box_width = self.window_width - len(self.prompt)
         self._edit_box.resize(self.message_box_width)
         new_height = max(2, self._edit_box.get_height())
-        if new_height != self.message_box_height:
+        old_height = self.message_box_height
+        if new_height != old_height:
             self.message_box_height = new_height
             # print(f'{self._edit_box.get_rows()}')
             # print(f'msg_box_h: {self.message_box_height}')
@@ -449,13 +450,13 @@ class ChatUI(object):
             # print(f'msg_box_y: {self.msg_box_origin_row}')
             self.msg_box_origin_col = len(self.prompt) + 1
             clear_win = curses.newwin(
-                self.message_box_height,
+                self.message_box_height + (1 if old_height > new_height else 0),
                 self.message_box_width,
                 self.msg_box_origin_row,
                 0,
             )
             clear_win.clear()
-            clear_win.addstr(0, 0, self.prompt)
+            clear_win.addstr((1 if old_height > new_height else 0), 0, self.prompt)
             clear_win.refresh()
             # self.draw_prompt()
             self.stdscr.refresh()
@@ -476,7 +477,7 @@ class ChatUI(object):
         )
 
         self._pad_height = self.chat_history_height + 100
-        self.pad = curses.newpad(self._pad_height, self.window_width)
+        self.pad = curses.newpad(self._pad_height, self.window_width+1)
 
     def draw_titlebar(self):
         self.stdscr.addstr(0, 0, self.title, curses.color_pair(ChatUI.TITLE_COLOR))
