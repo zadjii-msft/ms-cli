@@ -785,13 +785,10 @@ class ChatUI(object):
         pad_view_top = self._pad_height - pad_view_height
 
         total_message_height = sum([mb.get_height() for mb in message_boxes], 0)
-        # print(f'old offset:{self._offset_from_bottom}')
         if self._offset_from_bottom < 0:
-            # if total_message_height < pad_view_height or (self._offset_from_bottom < 0):
             self._offset_from_bottom = 0
         elif self._offset_from_bottom >= len(message_boxes):
             self._offset_from_bottom = len(message_boxes) - 1
-        # print(f'new offset:{self._offset_from_bottom}')
 
         for mb in message_boxes[self._offset_from_bottom :]:
             h = mb.get_height()

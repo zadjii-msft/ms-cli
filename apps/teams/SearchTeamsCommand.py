@@ -40,6 +40,11 @@ class SearchTeamsCommand(BaseCommand):
             action="store_true",
             help="if passed, fetch messages in team channels before searching",
         )
+        search_cmd.add_argument(
+            "--plain",
+            action="store_true",
+            help="Print each message as [id: {the message ID}] {the message text}. These results might be on multiple lines, if the message body contained newlines.",
+        )
 
         return search_cmd
 
@@ -89,6 +94,14 @@ class SearchTeamsCommand(BaseCommand):
         if len(result_msgs) == 0:
             return Error("No results found")
 
+        if args.plain:
+            self._print_plain(result_msgs)
+        else:
+            self._print_pretty(result_msgs)
+
+        return Success()
+
+    def _print_pretty(self, result_msgs):
         for i, msg in enumerate(result_msgs):
             (r, c) = os.get_terminal_size()
             # alternate BG colors
@@ -100,4 +113,6 @@ class SearchTeamsCommand(BaseCommand):
             )
             print(f"\x1b[4;2m{msg.sender.display_name}:\x1b[24;22;39m {msg.body}\x1b[m")
 
-        return Success()
+    def _print_plain(self, result_msgs):
+        for i, msg in enumerate(result_msgs):
+            print(f"[id: {msg.graph_id}] {msg.body}")
