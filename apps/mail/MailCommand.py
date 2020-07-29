@@ -5,6 +5,9 @@ from argparse import Namespace
 from apps.mail.MailListCommand import MailListCommand
 from apps.mail.MailFoldersCommand import MailFoldersCommand
 from apps.mail.MailReadCommand import MailReadCommand
+from apps.mail.MailMoveCommand import MailMoveCommand
+from apps.mail.MailSendCommand import MailSendCommand
+from apps.mail.MailSearchCommand import MailSearchCommand
 
 
 class MailCommand(BaseCommand):
@@ -30,6 +33,9 @@ class MailCommand(BaseCommand):
         list_cmd = MailListCommand(subparsers)
         folders_cmd = MailFoldersCommand(subparsers)
         read_cmd = MailReadCommand(subparsers)
+        move_cmd = MailMoveCommand(subparsers)
+        send_cmd = MailSendCommand(subparsers)
+        search_cmd = MailSearchCommand(subparsers)
 
         self._cmd = mail_cmd
         return mail_cmd

@@ -351,7 +351,7 @@ def list_mail(
 
         endpoint += f"$select={select}"
 
-    response = session.get(api_endpoint(endpoint))
+    response = session.get(api_endpoint(endpoint), headers={"Prefer": 'outlook.body-content-type="text"'})
     response.raise_for_status()
     return response.json()
 

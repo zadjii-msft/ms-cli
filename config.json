@@ -6,6 +6,7 @@
           "https://graph.microsoft.com/Team.ReadBasic.All",
           "https://graph.microsoft.com/Group.ReadWrite.All",
           "https://graph.microsoft.com/Chat.ReadWrite",
-          "https://graph.microsoft.com/User.Read.All"
+          "https://graph.microsoft.com/User.Read.All",
+          "https://graph.microsoft.com/Mail.Send"
          ]
 }
