@@ -10,6 +10,7 @@ from apps.teams.ListTeamsCommand import ListTeamsCommand
 from argparse import Namespace
 from msgraph import helpers
 import json
+from datetime import datetime
 
 
 class TeamsTeamCommand(BaseCommand):
@@ -40,7 +41,7 @@ class TeamsTeamCommand(BaseCommand):
         db.session.commit()
 
     @staticmethod
-    def cache_messages_in_channel(instance, channel, quiet=False):
+    def cache_messages_in_channel(instance, channel, quiet=False, fetch_all=False):
         # type: (Instance) -> ResultAndData
         db = instance.get_db()
         graph = instance.get_graph_session()
@@ -49,14 +50,24 @@ class TeamsTeamCommand(BaseCommand):
         if not quiet:
             print(f"fetching threads for {team.display_name}/{channel.display_name}...")
 
-        response = helpers.list_channel_messages(
-            graph, team_id=team.graph_id, channel_id=channel.graph_id
+        updated_time = channel.last_modified_time() if not fetch_all else None
+        # if updated_time:
+        #     print(f'Channel was last updated {updated_time.strftime("%c")}')
+
+        now = datetime.now()
+
+        response = helpers.list_channel_messages_since_time(
+            graph, team_id=team.graph_id, channel_id=channel.graph_id, when=updated_time
         )
+        if len(response['value']) > 0:
+            if not quiet:
+                print(f"fetching replies...")
+
         for chat_json in response["value"]:
             msg = get_or_create_message_model(db, chat_json)
             # TODO: If the message has a user that we don't know yet, fetch them too!
             TeamsTeamCommand.cache_replies_to_message(instance, msg)
-
+        channel.last_cached = now
         db.session.commit()
 
     @staticmethod
