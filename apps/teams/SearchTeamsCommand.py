@@ -10,6 +10,9 @@ from argparse import Namespace
 from msgraph import helpers
 import json
 import os
+from apps.teams.TeamsCacheCommand import TeamsCacheCommand
+from apps.teams.ListTeamsCommand import ListTeamsCommand
+from apps.teams.TeamsTeamCommand import TeamsTeamCommand
 
 
 class SearchTeamsCommand(BaseCommand):
@@ -18,12 +21,21 @@ class SearchTeamsCommand(BaseCommand):
 
         search_cmd.add_argument("query", help="The string to search for")
 
-        search_cmd.add_argument("--from-user", help="TODO", default=None)
-        search_cmd.add_argument("--user", help="TODO", default=None)
         search_cmd.add_argument(
-            "--no-cache",
+            "--from-user",
+            help="If provided, search for messages only from the given user",
+            default=None,
+        )
+        # search_cmd.add_argument("--user", help="TODO", default=None)
+        search_cmd.add_argument(
+            "--cache-chats",
             action="store_true",
-            help="if passed, disable caching on launch",
+            help="if passed, fetch chat messages before searching",
+        )
+        search_cmd.add_argument(
+            "--cache-teams",
+            action="store_true",
+            help="if passed, fetch messages in team channels before searching",
         )
 
         return search_cmd
@@ -34,6 +46,15 @@ class SearchTeamsCommand(BaseCommand):
         instance.login_to_graph()
         db = instance.get_db()
         graph = instance.get_graph_session()
+
+        if args.cache_chats:
+            TeamsCacheCommand.cache_all_messages(instance)
+        if args.cache_teams:
+            ListTeamsCommand.cache_all_teams(instance)
+            for team in db.session.query(Team):
+                TeamsTeamCommand.cache_all_channels(instance, team)
+                for ch in team.channels:
+                    TeamsTeamCommand.cache_messages_in_channel(instance, ch)
 
         from_user = None
         if args.from_user is not None:
@@ -61,11 +82,12 @@ class SearchTeamsCommand(BaseCommand):
         if len(result_msgs) == 0:
             return Error("No results found")
 
-
         for i, msg in enumerate(result_msgs):
             (r, c) = os.get_terminal_size()
             # alternate BG colors
-            background_format = "\x1b[48;2;32;31;30m" if i % 2 == 0 else "\x1b[48;2;59;58;57m"
+            background_format = (
+                "\x1b[48;2;32;31;30m" if i % 2 == 0 else "\x1b[48;2;59;58;57m"
+            )
             print(
                 f'{background_format}id: {msg.graph_id} - {msg.created_date_time.strftime("%c")}\x1b[K\x1b[m'
             )
